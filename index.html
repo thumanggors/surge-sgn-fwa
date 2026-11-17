@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>SURGE x PT. SAPUTRA GLOBAL NUSANTARA</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <style>
+    :root { --green:#047857; --amber:#b45309; --red:#b91c1c; --blue:#4338ca; --gold:#c9a24b;
+            --ink:#0f172a; --muted:#64748b; --line:#e8ebf1; --bg:#f3f5f9; --card:#fff;
+            --g-bg:#d1fae5; --y-bg:#fef3c7; --r-bg:#fee2e2; --n-bg:#e0e7ff; }
+    * { box-sizing: border-box; }
+    body { font-family: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif; margin:0; background:var(--bg); color:var(--ink); -webkit-font-smoothing:antialiased; font-variant-numeric: tabular-nums; }
+    .wrap { max-width:1280px; margin:0 auto; padding:0 20px; }
+    .hero { background: radial-gradient(1200px 400px at 85% -10%, rgba(201,162,75,.22), transparent 60%), linear-gradient(135deg,#0a1120 0%,#14203a 55%,#1c2b4a 100%); color:#fff; padding:30px 0 92px; border-bottom:2px solid var(--gold); }
+    .hero .wrap { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:12px; }
+    .eyebrow { font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--gold); font-weight:700; margin-bottom:8px; }
+    h1 { font-size:28px; font-weight:700; letter-spacing:-.02em; margin:0 0 6px; }
+    .hero .muted { color:rgba(255,255,255,.66); font-size:12.5px; max-width:760px; line-height:1.5; }
+    .live { font-size:12px; color:rgba(255,255,255,.8); border:1px solid rgba(255,255,255,.18); border-radius:999px; padding:6px 14px; background:rgba(255,255,255,.06); }
+    .live::before { content:""; display:inline-block; width:7px; height:7px; border-radius:50%; background:#34d399; margin-right:8px; box-shadow:0 0 0 4px rgba(52,211,153,.2); }
+    main.wrap { padding-bottom:40px; }
+    h2 { font-size:15px; font-weight:700; letter-spacing:-.01em; margin:0 0 12px; display:flex; align-items:center; gap:10px; }
+    h2::before { content:""; width:4px; height:16px; border-radius:2px; background:linear-gradient(var(--gold),#a8812f); }
+    h2.sec { margin:26px 0 12px; }
+    .muted { color:var(--muted); font-size:13px; }
+    .panel { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:20px; margin-bottom:18px; box-shadow:0 1px 2px rgba(15,23,42,.04), 0 8px 24px -12px rgba(15,23,42,.12); }
+    .filterbar { margin-top:-64px; position:relative; box-shadow:0 18px 40px -18px rgba(15,23,42,.35); }
+    .head { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; align-items:center; margin-bottom:12px; }
+    .alert { display:none; background:var(--r-bg); color:var(--red); padding:12px 14px; border-radius:12px; margin:16px 0; border:1px solid #fecaca; }
+    .filters { display:grid; grid-template-columns: repeat(5, 1fr) auto; gap:12px; align-items:end; }
+    .filters label { display:grid; gap:6px; font-size:11px; color:var(--muted); font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
+    .filters select, .filters input { padding:10px 12px; font-size:14px; border:1px solid #d5dae3; border-radius:10px; background:#fafbfd; min-width:0; color:var(--ink); transition:border-color .15s, box-shadow .15s; }
+    .filters select:focus, .filters input:focus { outline:none; border-color:var(--gold); box-shadow:0 0 0 3px rgba(201,162,75,.2); }
+    button { padding:10px 18px; font-size:14px; font-weight:600; border:1px solid #d5dae3; border-radius:10px; background:#fff; cursor:pointer; color:var(--ink); transition:all .15s; }
+    button:hover { background:#f1f4f9; border-color:#c3cad6; }
+    #exportBtn { background:linear-gradient(135deg,#14203a,#1c2b4a); color:#fff; border:none; }
+    #exportBtn:hover { filter:brightness(1.15); }
+    .cards { display:grid; grid-template-columns: repeat(5, 1fr); gap:14px; margin-bottom:14px; }
+    .card { position:relative; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px 16px 14px; box-shadow:0 1px 2px rgba(15,23,42,.04), 0 8px 24px -14px rgba(15,23,42,.14); min-width:0; overflow:hidden; transition:transform .18s, box-shadow .18s; }
+    .card:hover { transform:translateY(-2px); box-shadow:0 14px 30px -14px rgba(15,23,42,.25); }
+    .card::before { content:""; position:absolute; inset:0 0 auto 0; height:3px; background:var(--muted); }
+    .card .lbl { font-size:11px; color:var(--muted); font-weight:700; letter-spacing:.09em; text-transform:uppercase; }
+    .card .val { font-size:32px; font-weight:700; letter-spacing:-.03em; margin:8px 0 2px; line-height:1.1; overflow-wrap:anywhere; }
+    .card .sub { font-size:12px; color:var(--muted); min-height:30px; line-height:1.4; }
+    .card .mini { height:4px; border-radius:2px; background:#edf0f5; margin:8px 0 2px; overflow:hidden; }
+    .card .mini i { display:block; height:100%; border-radius:2px; background:var(--muted); }
+    .card .tag { display:inline-block; margin-top:8px; font-size:10.5px; font-weight:700; letter-spacing:.03em; padding:3px 10px; border-radius:999px; color:var(--muted); background:#eef1f6; }
+    .card.g::before, .card.g .mini i { background:linear-gradient(90deg,#10b981,#047857); } .card.g .val { color:var(--green); } .card.g .tag { background:var(--g-bg); color:var(--green); }
+    .card.y::before, .card.y .mini i { background:linear-gradient(90deg,#f59e0b,#b45309); } .card.y .val { color:var(--amber); } .card.y .tag { background:var(--y-bg); color:var(--amber); }
+    .card.r::before, .card.r .mini i { background:linear-gradient(90deg,#f87171,#b91c1c); } .card.r .val { color:var(--red); } .card.r .tag { background:var(--r-bg); color:var(--red); }
+    .card.n::before, .card.n .mini i { background:linear-gradient(90deg,#818cf8,#4338ca); } .card.n .val { color:var(--blue); } .card.n .tag { background:var(--n-bg); color:var(--blue); }
+    .card.crown { background:linear-gradient(160deg,#fffdf6,#fff6dc); border-color:#ecd9a0; }
+    .card.crown::before { background:linear-gradient(90deg,#e6c673,#b8902f); }
+    .legend { font-size:12px; color:var(--muted); margin:4px 0 8px; line-height:1.7; }
+    .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin:0 5px 0 12px; vertical-align:middle; }
+    .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap:18px; }
+    .grid2 > .panel { margin-bottom:18px; min-width:0; }
+    .scroll { overflow-x:auto; }
+    table { border-collapse: collapse; width:100%; font-size:13px; }
+    td, th { padding:10px 12px; border-bottom:1px solid var(--line); text-align:left; white-space:nowrap; }
+    th { color:var(--muted); font-size:10.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; background:#fafbfd; }
+    tbody tr:hover td { background:#f8f9fc; }
+    td.num, th.num { text-align:right; }
+    .pill { display:inline-block; padding:3px 10px; border-radius:999px; font-size:11px; font-weight:700; }
+    .pill.g { background:var(--g-bg); color:var(--green); } .pill.y { background:var(--y-bg); color:var(--amber); } .pill.r { background:var(--r-bg); color:var(--red); } .pill.n { background:#eef1f6; color:var(--muted); }
+    .bar { height:10px; background:#edf0f5; border-radius:5px; overflow:hidden; }
+    .bar > i { display:block; height:100%; border-radius:5px; background:linear-gradient(90deg,#818cf8,#4338ca); }
+    .frow { display:grid; grid-template-columns: 110px 1fr 96px; gap:10px; align-items:center; font-size:12px; margin:8px 0; }
+    details { border:1px solid var(--line); border-radius:12px; margin-bottom:10px; background:#fff; overflow:hidden; }
+    details[open] { box-shadow:0 8px 20px -14px rgba(15,23,42,.25); }
+    summary { cursor:pointer; padding:13px 16px; font-weight:600; font-size:14px; background:#fafbfd; }
+    details > .scroll { padding:0 8px 8px; }
+    svg text { font-family: inherit; }
+    #map { height:440px; border-radius:12px; border:1px solid var(--line); }
+    @media (max-width: 1000px) { .cards { grid-template-columns: repeat(2, 1fr); } .grid2 { grid-template-columns: 1fr; } .filters { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 560px) { .cards { grid-template-columns: 1fr; } .filters { grid-template-columns: 1fr; } .wrap { padding:0 14px; } h1 { font-size:22px; } .hero { padding-bottom:84px; } }
+  </style>
+</head>
+<body>
+  <header class="hero"><div class="wrap">
+    <div>
+      <div class="eyebrow">Executive Dashboard &middot; Surge FWA-BB</div>
+      <h1>SURGE x PT. SAPUTRA GLOBAL NUSANTARA</h1>
+      <div class="muted" id="status">Memuat...</div>
+    </div>
+    <div class="live">Pembaruan otomatis tiap 60 detik</div>
+  </div></header>
+
+  <main class="wrap">
+  <div class="alert" id="alert" role="alert"></div>
+
+  <section class="panel filterbar">
+    <div class="filters">
+      <label>Periode (bulan target)<select id="fPeriode"></select></label>
+      <label>Area<select id="fArea"></select></label>
+      <label>SPK<select id="fSpk"></select></label>
+      <label>SITE ID SURGE<input id="fId" type="search" placeholder="mis. 36TNG_0468"></label>
+      <label>SITE NAME SURGE<input id="fName" type="search" placeholder="mis. ALFAMART"></label>
+      <button id="fReset" type="button">Reset</button>
+    </div>
+    <div class="muted" id="fCount" style="margin-top:8px"></div>
+  </section>
+
+  <div class="cards" id="kpi1"></div>
+  <div class="cards" id="kpi2"></div>
+  <p class="legend">
+    <span class="dot" style="background:var(--green);margin-left:0"></span>Hijau = tercapai
+    <span class="dot" style="background:var(--amber)"></span>Kuning = perlu perhatian
+    <span class="dot" style="background:var(--red)"></span>Merah = di bawah target
+    <span class="dot" style="background:var(--blue)"></span>Indigo = informasi
+    &middot; Ambang: progres/penyelesaian &ge;80% hijau, 40&ndash;79% kuning, &lt;40% merah; overdue &amp; belum mulai &le;10% hijau, &le;30% kuning, &gt;30% merah.
+  </p>
+
+  <h2 class="sec">Top 5 area &middot; rata-rata % progres</h2>
+  <div class="cards" id="top5"></div>
+
+  <div class="grid2">
+    <section class="panel"><h2>Tren target On Air per bulan</h2><div id="trend"></div></section>
+    <section class="panel"><h2>Funnel milestone (Survey &rarr; ATP)</h2><div id="funnel"></div></section>
+  </div>
+
+  <section class="panel">
+    <h2>Peringkat semua area</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>#</th><th>Area</th><th class="num">Site</th><th class="num">% Progress</th><th class="num">On Air</th><th class="num">Overdue</th><th class="num">Belum mulai</th><th class="num">Dalam pengerjaan</th><th>Status</th></tr></thead>
+      <tbody id="rank"></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel" id="mapPanel">
+    <h2>Peta area <span class="muted">warna = status &middot; ukuran = jumlah site dalam pengerjaan</span></h2>
+    <div id="map"></div>
+    <div class="muted" id="mapNote" style="margin-top:6px"></div>
+  </section>
+
+  <section class="panel">
+    <div class="head" style="margin-bottom:8px">
+      <h2 style="margin:0">Site dalam pengerjaan per area</h2>
+      <button id="exportBtn" type="button">Ekspor CSV</button>
+    </div>
+    <div class="muted" style="margin-bottom:8px">Dalam pengerjaan = status progres belum SELESAI. Lama pengerjaan dihitung otomatis di browser: jumlah hari sejak actual start (jika kosong, sejak plan start).</div>
+    <div id="openList"></div>
+  </section>
+
+  </main>
+  <script>
+    const el = id => document.getElementById(id);
+    const safe = v => String(v ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+    const state = { data: null, f: { periode:'', area:'', spk:'', id:'', name:'' }, openAreas: new Set(), firstRender: true, loading: false };
+    const NO_AREA = '(TANPA AREA)';
+    const ITER = 200000; // harus sama dengan sync_github.py
+
+    // Koordinat pusat kota (manual). Kunci = nama area di Excel (huruf besar).
+    const AREA_COORDS = {
+      'TANGERANG':   [-6.1783, 106.6319],
+      'SERANG':      [-6.1201, 106.1503],
+      'CILEGON':     [-6.0025, 106.0111],
+      'KAB. SERANG': [-6.1890, 106.2740],
+      'BOJONEGARA':  [-5.9550, 106.0500],
+      'LEBAK':       [-6.3600, 106.2500]
+    };
+
+    // ---- Mode GitHub Pages: data terenkripsi ----
+    function askPassword(retry) {
+      return new Promise(resolve => {
+        const box = document.createElement('div');
+        box.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#0b1220;display:flex;align-items:center;justify-content:center';
+        box.innerHTML = `<form style="background:#fff;padding:28px;border-radius:12px;display:grid;gap:12px;width:min(320px,90vw)">
+          <b>Masuk ke Dashboard FWA SURGE</b>
+          <input type="password" placeholder="Password" autocomplete="current-password" style="padding:10px;font-size:16px">
+          <span style="color:#c00;font-size:13px">${retry ? 'Password salah.' : ''}</span>
+          <button style="padding:10px;font-size:16px">Masuk</button></form>`;
+        box.querySelector('form').onsubmit = e => { e.preventDefault(); const v = box.querySelector('input').value; box.remove(); resolve(v); };
+        document.body.appendChild(box);
+        box.querySelector('input').focus();
+      });
+    }
+    async function loadEncrypted() {
+      const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+      const res = await fetch(`data.enc.json?t=${Date.now()}`, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`data.enc.json HTTP ${res.status}`);
+      const enc = await res.json();
+      for (let retry = false; ; retry = true) {
+        let pw = null;
+        try { pw = sessionStorage.getItem('pw'); } catch {}
+        if (!pw || retry) pw = await askPassword(retry);
+        try {
+          const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']);
+          const key = await crypto.subtle.deriveKey({ name:'PBKDF2', salt:b64(enc.salt), iterations:ITER, hash:'SHA-256' },
+            base, { name:'AES-GCM', length:256 }, false, ['decrypt']);
+          const plain = await crypto.subtle.decrypt({ name:'AES-GCM', iv:b64(enc.iv) }, key, b64(enc.data));
+          try { sessionStorage.setItem('pw', pw); } catch {}
+          return JSON.parse(new TextDecoder().decode(plain));
+        } catch { try { sessionStorage.removeItem('pw'); } catch {} }
+      }
+    }
+
+    // ---- Util ----
+    const areaOf = r => r.area || NO_AREA;
+    const fmtInt = n => (n ?? 0).toLocaleString('id-ID');
+    const fmtPct = (n, d = 1) => (n * 100).toLocaleString('id-ID', { minimumFractionDigits: d, maximumFractionDigits: d }) + '%';
+    const MON = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+    const monLabel = ym => { const [y, m] = String(ym).split('-'); return MON[(+m || 1) - 1] + ' ' + String(y).slice(2); };
+    const LV = { g:'Tercapai', y:'Perlu perhatian', r:'Di bawah target', n:'Info' };
+    const hi = p => p >= .8 ? 'g' : p >= .4 ? 'y' : 'r';       // makin tinggi makin baik
+    const lo = p => p <= .1 ? 'g' : p <= .3 ? 'y' : 'r';       // makin rendah makin baik
+    const msIdx = n => state.data.milestones.indexOf(n);
+    const isDone = (r, name) => r.ms[msIdx(name)] === true;
+    const isOpen = r => r.status_progres !== 'SELESAI';
+    const validDate = s => { const d = s ? new Date(s) : null; return d && !isNaN(d) && d.getFullYear() >= 2020 ? d : null; };
+    function ageDays(r) {
+      const d = validDate(r.actual_start) || validDate(r.plan_start); if (!d) return null;
+      const t = new Date(); t.setHours(0,0,0,0);
+      return Math.max(0, Math.round((t - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 86400000));
+    }
+    const dateStr = s => { if (!s) return '-'; const d = new Date(s); return isNaN(d) ? '-' : d.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' }); };
+
+    // ---- Filter ----
+    function filtered() {
+      const f = state.f, q1 = f.id.trim().toLowerCase(), q2 = f.name.trim().toLowerCase();
+      return state.data.rows.filter(r =>
+        (!f.periode || r.bulan_target === f.periode) &&
+        (!f.area || areaOf(r) === f.area) &&
+        (!f.spk || String(r.spk) === f.spk) &&
+        (!q1 || [r.origin_surge, r.dest_surge].some(v => (v || '').toLowerCase().includes(q1))) &&
+        (!q2 || [r.origin_name, r.dest_name].some(v => (v || '').toLowerCase().includes(q2))));
+    }
+    function fillSelect(id, values, labelFn, allLabel) {
+      const s = el(id), cur = state.f[{fPeriode:'periode', fArea:'area', fSpk:'spk'}[id]];
+      s.innerHTML = `<option value="">${safe(allLabel)}</option>` +
+        values.map(v => `<option value="${safe(v)}"${v === cur ? ' selected' : ''}>${safe(labelFn(v))}</option>`).join('');
+      if (cur && !values.includes(cur)) { state.f[{fPeriode:'periode', fArea:'area', fSpk:'spk'}[id]] = ''; s.value = ''; }
+    }
+    function buildFilters() {
+      const rows = state.data.rows, uniq = fn => [...new Set(rows.map(fn).filter(Boolean))];
+      fillSelect('fPeriode', uniq(r => r.bulan_target).sort(), monLabel, '(Semua periode)');
+      fillSelect('fArea', uniq(areaOf).sort(), v => v, '(Semua area)');
+      fillSelect('fSpk', uniq(r => r.spk == null ? null : String(r.spk)).sort((a, b) => a - b), v => 'SPK ' + v, '(Semua SPK)');
+    }
+
+    // ---- Agregasi per area ----
+    function areaStats(rows) {
+      const m = new Map();
+      for (const r of rows) {
+        const a = areaOf(r);
+        if (!m.has(a)) m.set(a, { area:a, n:0, prog:0, onair:0, overdue:0, belum:0, open:0 });
+        const s = m.get(a);
+        s.n++; s.prog += r.progress || 0;
+        if (isDone(r, 'ON AIR / RFS')) s.onair++;
+        if (r.status_jadwal === 'OVERDUE') s.overdue++;
+        if (r.status_progres === 'BELUM MULAI') s.belum++;
+        if (isOpen(r)) s.open++;
+      }
+      const list = [...m.values()].map(s => ({ ...s, avg: s.n ? s.prog / s.n : 0 }));
+      list.sort((a, b) => b.avg - a.avg || b.n - a.n || a.area.localeCompare(b.area));
+      return list;
+    }
+
+    // ---- Render ----
+    function kpiCard(lbl, val, sub, lv, pct, extra = '') {
+      const bar = pct == null ? '' : `<div class="mini"><i style="width:${Math.max(0, Math.min(100, pct * 100)).toFixed(1)}%"></i></div>`;
+      return `<div class="card ${lv} ${extra}"><div class="lbl">${safe(lbl)}</div><div class="val">${safe(val)}</div>${bar}<div class="sub">${safe(sub)}</div><span class="tag">${safe(LV[lv])}</span></div>`;
+    }
+    function renderKpi(rows) {
+      const n = rows.length, cnt = fn => rows.filter(fn).length, pct = x => n ? x / n : 0;
+      const selesai = cnt(r => r.status_progres === 'SELESAI');
+      const onprog = cnt(r => r.status_progres === 'ON PROGRESS' || r.status_progres === 'HAMPIR SELESAI');
+      const overdue = cnt(r => r.status_jadwal === 'OVERDUE');
+      const belum = cnt(r => r.status_progres === 'BELUM MULAI');
+      const avg = n ? rows.reduce((a, r) => a + (r.progress || 0), 0) / n : 0;
+      const oaN = cnt(r => isDone(r, 'ON AIR / RFS')), atpN = cnt(r => isDone(r, 'ATP'));
+      const ready = cnt(r => isDone(r, 'ON AIR / RFS') && !isDone(r, 'ATP'));
+      const rel = cnt(r => r.po_status === 'RELEASE');
+      el('kpi1').innerHTML =
+        kpiCard('Total site', fmtInt(n), `dari ${fmtInt(state.data.rows.length)} site`, 'n') +
+        kpiCard('Selesai', fmtInt(selesai), fmtPct(pct(selesai)) + ' dari total', hi(pct(selesai)), pct(selesai)) +
+        kpiCard('Sedang berjalan', fmtInt(onprog), fmtPct(pct(onprog)) + ' dari total (termasuk hampir selesai)', 'n', pct(onprog)) +
+        kpiCard('Terlambat (overdue)', fmtInt(overdue), fmtPct(pct(overdue)) + ' perlu tindakan', lo(pct(overdue)), pct(overdue)) +
+        kpiCard('Belum mulai', fmtInt(belum), fmtPct(pct(belum)) + ' dari total', lo(pct(belum)), pct(belum));
+      el('kpi2').innerHTML =
+        kpiCard('Rata-rata progres', fmtPct(avg), `rata-rata ${fmtInt(n)} site`, hi(avg), avg) +
+        kpiCard('On air / RFS', fmtInt(oaN), fmtPct(pct(oaN)) + ' dari total', hi(pct(oaN)), pct(oaN)) +
+        kpiCard('Siap ATP', fmtInt(ready), 'Sudah on air, menunggu ATP', ready === 0 ? 'g' : 'y') +
+        kpiCard('Sudah ATP', fmtInt(atpN), fmtPct(pct(atpN)) + ' dari total', hi(pct(atpN)), pct(atpN)) +
+        kpiCard('PO release', fmtInt(rel), fmtPct(pct(rel)) + ' dari total site', hi(pct(rel)), pct(rel));
+    }
+    function renderTop5(stats) {
+      if (!stats.length) { el('top5').innerHTML = '<p class="muted">Tidak ada data.</p>'; return; }
+      el('top5').innerHTML = stats.slice(0, 5).map((s, i) =>
+        kpiCard(`#${i + 1} ${s.area}`, (i === 0 ? '\u{1F451} ' : '') + fmtPct(s.avg), `${fmtInt(s.n)} site · ${fmtInt(s.open)} dalam pengerjaan`, hi(s.avg), s.avg, i === 0 ? 'crown' : '')).join('');
+    }
+    function renderTrend(rows) {
+      const months = [...new Set(state.data.rows.map(r => r.bulan_target).filter(Boolean))].sort();
+      if (!months.length) { el('trend').innerHTML = '<p class="muted">Tidak ada data.</p>'; return; }
+      const tgt = months.map(m => rows.filter(r => r.bulan_target === m).length);
+      const real = months.map(m => rows.filter(r => r.bulan_target === m && isDone(r, 'ON AIR / RFS')).length);
+      let c = 0; const cum = tgt.map(v => c += v);
+      const W = 620, H = 280, L = 34, B = 34, T = 18, R = 12, max = Math.max(1, ...cum);
+      const gw = (W - L - R) / months.length, bw = Math.min(26, gw * .3);
+      const y = v => H - B - (v / max) * (H - B - T);
+      let g = '';
+      for (let i = 0; i <= 4; i++) { const v = Math.round(max * i / 4); g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#e5e7eb"/><text x="${L - 6}" y="${y(v) + 4}" font-size="11" text-anchor="end" fill="#64748b">${v}</text>`; }
+      months.forEach((m, i) => {
+        const cx = L + gw * i + gw / 2;
+        g += `<rect x="${cx - bw - 1}" y="${y(tgt[i])}" width="${bw}" height="${H - B - y(tgt[i])}" fill="#a5b4fc"><title>${safe(monLabel(m))}: target ${tgt[i]}</title></rect>`;
+        g += `<rect x="${cx + 1}" y="${y(real[i])}" width="${bw}" height="${H - B - y(real[i])}" fill="#059669"><title>${safe(monLabel(m))}: on air ${real[i]}</title></rect>`;
+        if (tgt[i]) g += `<text x="${cx - bw / 2 - 1}" y="${y(tgt[i]) - 4}" font-size="10" text-anchor="middle" fill="#3730a3">${tgt[i]}</text>`;
+        if (real[i]) g += `<text x="${cx + bw / 2 + 1}" y="${y(real[i]) - 4}" font-size="10" text-anchor="middle" fill="#065f46">${real[i]}</text>`;
+        g += `<text x="${cx}" y="${H - B + 16}" font-size="11" text-anchor="middle" fill="#64748b">${safe(monLabel(m))}</text>`;
+      });
+      const pts = months.map((m, i) => `${L + gw * i + gw / 2},${y(cum[i])}`).join(' ');
+      g += `<polyline points="${pts}" fill="none" stroke="#c9a24b" stroke-width="2.5"/>` +
+        months.map((m, i) => `<circle cx="${L + gw * i + gw / 2}" cy="${y(cum[i])}" r="3.5" fill="#c9a24b"><title>${safe(monLabel(m))}: kumulatif target ${cum[i]}</title></circle>`).join('');
+      el('trend').innerHTML =
+        `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Tren target On Air per bulan">${g}</svg>
+         <div class="muted"><span class="dot" style="background:#a5b4fc;margin-left:0"></span>Target OA per bulan<span class="dot" style="background:#059669"></span>Sudah on air<span class="dot" style="background:#c9a24b"></span>Kumulatif target</div>`;
+    }
+    function renderFunnel(rows) {
+      el('funnel').innerHTML = state.data.milestones.map((name, i) => {
+        const app = rows.filter(r => r.ms[i] !== null).length, done = rows.filter(r => r.ms[i] === true).length;
+        const p = app ? done / app : 0;
+        return `<div class="frow"><span>${safe(name)}</span><div class="bar" title="${done} dari ${app}"><i style="width:${(p * 100).toFixed(1)}%"></i></div><span>${done}/${app} · ${fmtPct(p, 0)}</span></div>`;
+      }).join('') + '<div class="muted" style="margin-top:6px">Milestone bertanda N/A tidak dihitung pada penyebut.</div>';
+    }
+    function renderRank(stats) {
+      el('rank').innerHTML = stats.map((s, i) => {
+        const lv = hi(s.avg);
+        return `<tr><td>${i === 0 ? '\u{1F451}' : i + 1}</td><td><b>${safe(s.area)}</b></td><td class="num">${fmtInt(s.n)}</td><td class="num">${fmtPct(s.avg)}</td><td class="num">${fmtInt(s.onair)}</td><td class="num">${fmtInt(s.overdue)}</td><td class="num">${fmtInt(s.belum)}</td><td class="num">${fmtInt(s.open)}</td><td><span class="pill ${lv}">${safe(LV[lv])}</span></td></tr>`;
+      }).join('') || '<tr><td colspan="9" class="muted">Tidak ada data.</td></tr>';
+    }
+    const COLOR = { g:'#059669', y:'#d97706', r:'#dc2626' };
+    function renderMap(stats) {
+      if (typeof L === 'undefined') { el('mapPanel').style.display = 'none'; return; }
+      if (!state.map) {
+        state.map = L.map('map', { scrollWheelZoom:false }).setView([-2.5, 117], 4);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:12, attribution:'&copy; OpenStreetMap' }).addTo(state.map);
+        state.layer = L.layerGroup().addTo(state.map);
+      }
+      state.layer.clearLayers();
+      const pts = []; let skipped = 0;
+      stats.forEach(s => {
+        const p = AREA_COORDS[s.area.toUpperCase()];
+        if (!p) { skipped += s.n; return; }
+        pts.push(p);
+        L.circleMarker(p, { radius: Math.min(36, 8 + Math.sqrt(s.open) * 4), color: COLOR[hi(s.avg)], fillColor: COLOR[hi(s.avg)], fillOpacity:.55 })
+          .bindPopup(`<b>${safe(s.area)}</b><br>Site: ${fmtInt(s.n)} · Dalam pengerjaan: ${fmtInt(s.open)}<br>Progress: ${fmtPct(s.avg)}<br>On air: ${fmtInt(s.onair)} · Overdue: ${fmtInt(s.overdue)} · Belum mulai: ${fmtInt(s.belum)}`)
+          .addTo(state.layer);
+      });
+      if (pts.length) state.map.fitBounds(L.latLngBounds(pts).pad(.35), { maxZoom: 10 });
+      el('mapNote').textContent = skipped ? `${fmtInt(skipped)} site tanpa area tidak tampil di peta.` : '';
+    }
+    function openRows(rows) {
+      return rows.filter(isOpen).map(r => ({ r, age: ageDays(r) }));
+    }
+    function renderOpen(rows) {
+      const groups = new Map();
+      openRows(rows).forEach(o => { const a = areaOf(o.r); (groups.get(a) || groups.set(a, []).get(a)).push(o); });
+      const list = [...groups.entries()].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
+      if (!list.length) { el('openList').innerHTML = '<p class="muted">Tidak ada site dalam pengerjaan pada filter ini.</p>'; return; }
+      if (state.firstRender) state.openAreas.add(list[0][0]);
+      el('openList').innerHTML = list.map(([area, items]) => {
+        items.sort((a, b) => (b.age ?? -1) - (a.age ?? -1));
+        const ages = items.map(i => i.age).filter(a => a !== null), avgAge = ages.length ? Math.round(ages.reduce((a, b) => a + b, 0) / ages.length) : null;
+        const body = items.map(({ r, age }) => {
+          const lv = r.status_jadwal === 'OVERDUE' ? 'r' : r.status_jadwal === 'KRITIS' ? 'y' : 'n';
+          return `<tr><td>${safe(r.origin_surge || '-')}</td><td>${safe(r.origin_name || '-')}</td><td>${safe(r.dest_surge || '-')}</td><td>${safe(r.dest_name || '-')}</td><td>${safe(r.spk ?? '-')}</td><td>${safe(r.pic || '-')}</td><td>${safe(r.status_progres || '-')}</td><td><span class="pill ${lv}">${safe(r.status_jadwal || '-')}</span></td><td class="num">${fmtPct(r.progress || 0, 0)}</td><td class="num">${age === null ? '-' : fmtInt(age)}</td><td>${safe(r.gap || '-')}</td></tr>`;
+        }).join('');
+        return `<details data-a="${safe(area)}"${state.openAreas.has(area) ? ' open' : ''}><summary>${safe(area)} &middot; ${fmtInt(items.length)} site dalam pengerjaan &middot; rata-rata lama ${avgAge === null ? '-' : fmtInt(avgAge) + ' hari'}</summary>
+          <div class="scroll"><table><thead><tr><th>Site ID Surge (origin)</th><th>Site name (origin)</th><th>Site ID Surge (dest)</th><th>Site name (dest)</th><th>SPK</th><th>PIC</th><th>Status progres</th><th>Jadwal</th><th class="num">Progress</th><th class="num">Lama (hari)</th><th>GAP</th></tr></thead><tbody>${body}</tbody></table></div></details>`;
+      }).join('');
+      el('openList').querySelectorAll('details[data-a]').forEach(d => d.addEventListener('toggle', () => {
+        d.open ? state.openAreas.add(d.dataset.a) : state.openAreas.delete(d.dataset.a);
+      }));
+    }
+    function renderAll() {
+      const rows = filtered(), stats = areaStats(rows);
+      el('fCount').textContent = `Menampilkan ${fmtInt(rows.length)} dari ${fmtInt(state.data.rows.length)} site.`;
+      renderKpi(rows); renderTop5(stats); renderTrend(rows); renderFunnel(rows); renderRank(stats); renderMap(stats); renderOpen(rows);
+      state.firstRender = false;
+    }
+    function render(data) {
+      state.data = data;
+      buildFilters();
+      const loaded = new Date().toLocaleTimeString('id-ID');
+      el('status').textContent = `Sumber: ${data.meta.source} · Excel disimpan: ${new Date(data.meta.file_modified).toLocaleString('id-ID')} · Dimuat: ${loaded}`;
+      el('alert').style.display = 'none';
+      const bad = data.rows.filter(r => r.actual_start && !validDate(r.actual_start)).map(r => r.no);
+      if (bad.length) el('status').textContent += ` · Perhatian: tanggal actual start tidak valid pada NO ${bad.join(', ')} (periksa di Excel)`;
+      renderAll();
+    }
+
+    // ---- Ekspor CSV (Excel Indonesia: BOM + sep=; ; cegah formula injection) ----
+    el('exportBtn').onclick = () => {
+      if (!state.data) return;
+      const cell = v => {
+        if (typeof v === 'number') return String(v).replace('.', ',');
+        v = String(v ?? '');
+        if (/^[=+\-@\t\r]/.test(v)) v = "'" + v;
+        return '"' + v.replace(/"/g, '""') + '"';
+      };
+      const head = ['Area','SITE ID SURGE (origin)','SITE NAME SURGE (origin)','SITE ID SURGE (dest)','SITE NAME SURGE (dest)','SPK','PIC','Status progres','Status jadwal','Progress (%)','Lama pengerjaan (hari)','GAP'];
+      const body = openRows(filtered()).sort((a, b) => areaOf(a.r).localeCompare(areaOf(b.r)) || (b.age ?? -1) - (a.age ?? -1))
+        .map(({ r, age }) => [areaOf(r), r.origin_surge, r.origin_name, r.dest_surge, r.dest_name, r.spk, r.pic, r.status_progres, r.status_jadwal, Math.round((r.progress || 0) * 1000) / 10, age, r.gap]);
+      const csv = '﻿sep=;\r\n' + [head, ...body].map(r => r.map(cell).join(';')).join('\r\n');
+      const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' })), download:'site-dalam-pengerjaan.csv' });
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    };
+
+    // ---- Event filter ----
+    [['fPeriode','periode'], ['fArea','area'], ['fSpk','spk']].forEach(([id, k]) => el(id).onchange = e => { state.f[k] = e.target.value; renderAll(); });
+    [['fId','id'], ['fName','name']].forEach(([id, k]) => el(id).oninput = e => { state.f[k] = e.target.value; renderAll(); });
+    el('fReset').onclick = () => {
+      state.f = { periode:'', area:'', spk:'', id:'', name:'' };
+      ['fPeriode','fArea','fSpk','fId','fName'].forEach(id => el(id).value = '');
+      renderAll();
+    };
+
+    // ---- Muat data: GitHub Pages -> terenkripsi, lokal -> /api/dashboard ----
+    const useEncrypted = () => location.hostname.endsWith('github.io') || new URLSearchParams(location.search).has('enc');
+    async function loadData() {
+      if (state.loading) return;
+      state.loading = true;
+      try {
+        if (useEncrypted()) render(await loadEncrypted());
+        else {
+          const res = await fetch(`/api/dashboard?t=${Date.now()}`, { cache:'no-store' });
+          const body = await res.json();
+          if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
+          render(body);
+        }
+      } catch (e) {
+        el('alert').style.display = 'block';
+        el('alert').textContent = `Gagal memuat data: ${e.message}`;
+        if (!state.data) el('status').textContent = 'Data belum tersedia.';
+      } finally { state.loading = false; }
+    }
+    loadData();
+    setInterval(loadData, 60000);
+  </script>
+</body>
+</html>

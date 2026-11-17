@@ -1,0 +1,7 @@
+password.txt
+sync.log
+data.json
+*.xlsx
+*.xlsm
+*.zip
+__pycache__/
