@@ -33,7 +33,7 @@
     .filterbar { margin-top:-64px; position:relative; box-shadow:0 18px 40px -18px rgba(15,23,42,.35); }
     .head { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; align-items:center; margin-bottom:12px; }
     .alert { display:none; background:var(--r-bg); color:var(--red); padding:12px 14px; border-radius:12px; margin:16px 0; border:1px solid #fecaca; }
-    .filters { display:grid; grid-template-columns: repeat(6, 1fr) auto; gap:12px; align-items:end; }
+    .filters { display:grid; grid-template-columns: repeat(7, 1fr) auto; gap:12px; align-items:end; }
     .filters label { display:grid; gap:6px; font-size:11px; color:var(--muted); font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
     .filters select, .filters input { padding:10px 12px; font-size:14px; border:1px solid #d5dae3; border-radius:10px; background:#fafbfd; min-width:0; color:var(--ink); transition:border-color .15s, box-shadow .15s; }
     .filters select:focus, .filters input:focus { outline:none; border-color:var(--gold); box-shadow:0 0 0 3px rgba(201,162,75,.2); }
@@ -135,6 +135,7 @@
       <label>Area<select id="fArea"></select></label>
       <label>SPK<select id="fSpk"></select></label>
       <label>Project name<select id="fProject"></select></label>
+      <label>PIC<select id="fPic"></select></label>
       <label>SITE ID SURGE<input id="fId" type="search" placeholder="mis. 36TNG_0468"></label>
       <label>SITE NAME SURGE<input id="fName" type="search" placeholder="mis. ALFAMART"></label>
       <button id="fReset" type="button">Reset</button>
@@ -193,7 +194,7 @@
   <script>
     const el = id => document.getElementById(id);
     const safe = v => String(v ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-    const state = { data: null, f: { periode:'', area:'', spk:'', project:'', id:'', name:'' }, openAreas: new Set(), firstRender: true, loading: false };
+    const state = { data: null, f: { periode:'', area:'', spk:'', project:'', pic:'', id:'', name:'' }, openAreas: new Set(), firstRender: true, loading: false };
     const NO_AREA = '(TANPA AREA)';
     const ITER = 200000; // harus sama dengan sync_github.py
 
@@ -244,6 +245,7 @@
 
     // ---- Util ----
     const areaOf = r => r.area || NO_AREA;
+    const picOf = r => r.pic || '(TANPA PIC)';
     const fmtInt = n => (n ?? 0).toLocaleString('id-ID');
     const fmtPct = (n, d = 1) => (n * 100).toLocaleString('id-ID', { minimumFractionDigits: d, maximumFractionDigits: d }) + '%';
     const MON = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
@@ -270,20 +272,22 @@
         (!f.area || areaOf(r) === f.area) &&
         (!f.spk || String(r.spk) === f.spk) &&
         (!f.project || r.project === f.project) &&
+        (!f.pic || picOf(r) === f.pic) &&
         (!q1 || [r.origin_surge, r.dest_surge].some(v => (v || '').toLowerCase().includes(q1))) &&
         (!q2 || [r.origin_name, r.dest_name].some(v => (v || '').toLowerCase().includes(q2))));
     }
     function fillSelect(id, values, labelFn, allLabel) {
-      const s = el(id), cur = state.f[{fPeriode:'periode', fArea:'area', fSpk:'spk', fProject:'project'}[id]];
+      const s = el(id), cur = state.f[{fPeriode:'periode', fArea:'area', fSpk:'spk', fProject:'project', fPic:'pic'}[id]];
       s.innerHTML = `<option value="">${safe(allLabel)}</option>` +
         values.map(v => `<option value="${safe(v)}"${v === cur ? ' selected' : ''}>${safe(labelFn(v))}</option>`).join('');
-      if (cur && !values.includes(cur)) { state.f[{fPeriode:'periode', fArea:'area', fSpk:'spk', fProject:'project'}[id]] = ''; s.value = ''; }
+      if (cur && !values.includes(cur)) { state.f[{fPeriode:'periode', fArea:'area', fSpk:'spk', fProject:'project', fPic:'pic'}[id]] = ''; s.value = ''; }
     }
     function buildFilters() {
       const rows = state.data.rows, uniq = fn => [...new Set(rows.map(fn).filter(Boolean))];
       fillSelect('fPeriode', uniq(r => r.bulan_target).sort(), monLabel, '(Semua periode)');
       fillSelect('fArea', uniq(areaOf).sort(), v => v, '(Semua area)');
       fillSelect('fProject', uniq(r => r.project).sort(), v => v, '(Semua project)');
+      fillSelect('fPic', uniq(picOf).sort(), v => v, '(Semua PIC)');
       fillSelect('fSpk',uniq(r => r.spk == null ? null : String(r.spk)).sort((a, b) => a - b), v => 'SPK ' + v, '(Semua SPK)');
     }
 
@@ -547,11 +551,11 @@
     el('drill').addEventListener('close', () => { state.drillKey = null; });
 
     // ---- Event filter ----
-    [['fPeriode','periode'], ['fArea','area'], ['fSpk','spk'], ['fProject','project']].forEach(([id, k]) => el(id).onchange = e => { state.f[k] = e.target.value; renderAll(); });
+    [['fPeriode','periode'], ['fArea','area'], ['fSpk','spk'], ['fProject','project'], ['fPic','pic']].forEach(([id, k]) => el(id).onchange = e => { state.f[k] = e.target.value; renderAll(); });
     [['fId','id'], ['fName','name']].forEach(([id, k]) => el(id).oninput = e => { state.f[k] = e.target.value; renderAll(); });
     el('fReset').onclick = () => {
-      state.f = { periode:'', area:'', spk:'', project:'', id:'', name:'' };
-      ['fPeriode','fArea','fSpk','fProject','fId','fName'].forEach(id => el(id).value = '');
+      state.f = { periode:'', area:'', spk:'', project:'', pic:'', id:'', name:'' };
+      ['fPeriode','fArea','fSpk','fProject','fPic','fId','fName'].forEach(id => el(id).value = '');
       renderAll();
     };
 
