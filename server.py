@@ -20,6 +20,9 @@ HOST, START_PORT = "127.0.0.1", 8765
 MILESTONES = ["SURVEY", "PERMIT", "DRM", "MOS", "INSTAL POLE", "GALIAN", "INSTAL HDPE",
               "PULLING CABLE", "INSTAL OTB", "INSTAL ODC", "INSTAL ODP", "ON AIR / RFS", "ATP"]
 MS_COL = 22
+# Quantity APD (as planned design) dan ABD (as built drawing): 6 item berurutan, kolom 44..49 dan 50..55
+QTY_ITEMS = ["Tiang 7 m", "Tiang 9 m", "Kabel 24 Core (m)", "Slack Hanger", "Closure", "ODP"]
+APD_COL, ABD_COL = 44, 50
 
 
 def json_value(v):
@@ -109,6 +112,8 @@ def extract_dashboard(source: Path) -> dict:
                 "sisa_hari": number(r[61]),
                 "status_jadwal": text(r[62]),
                 "bulan_target": text(r[63]),
+                "apd": [number(r[APD_COL + i]) for i in range(len(QTY_ITEMS))],
+                "abd": [number(r[ABD_COL + i]) for i in range(len(QTY_ITEMS))],
             })
         return {
             "meta": {  # hanya nama file, tanpa path lokal
@@ -118,6 +123,7 @@ def extract_dashboard(source: Path) -> dict:
                 "stale": False, "warning": None,
             },
             "milestones": MILESTONES,
+            "qty_items": QTY_ITEMS,
             "rows": rows,
         }
     finally:

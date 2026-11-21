@@ -154,6 +154,16 @@
   </div>
 
   <section class="panel">
+    <h2>Quantity APD vs ABD <span class="muted">APD = as planned design &middot; ABD = as built drawing &middot; sesuai filter aktif</span></h2>
+    <div class="scroll"><table>
+      <thead><tr><th>Item</th><th class="num">APD (rencana)</th><th class="num">ABD (terbangun)</th><th class="num">Selisih (ABD &minus; APD)</th><th style="min-width:200px">ABD terhadap APD</th></tr></thead>
+      <tbody id="qtySum"></tbody>
+    </table></div>
+    <details style="margin-top:14px"><summary>Rincian per area</summary><div class="scroll" id="qtyArea"></div></details>
+    <details><summary>Rincian per site</summary><div class="scroll" id="qtySite"></div></details>
+  </section>
+
+  <section class="panel">
     <h2>Peringkat semua area</h2>
     <div class="scroll"><table>
       <thead><tr><th>#</th><th>Area</th><th class="num">Site</th><th class="num">% Progress</th><th class="num">On Air</th><th class="num">Overdue</th><th class="num">Belum mulai</th><th class="num">Dalam pengerjaan</th></tr></thead>
@@ -496,10 +506,30 @@
       box.innerHTML = `<div class="tl-row tl-head"><div class="tl-info">Site</div><div class="tl-track" style="width:${W}px">${head}${line}</div></div>` + body;
       if (!state.tlScrolled) { box.scrollLeft = Math.max(0, x(today) - 400); state.tlScrolled = true; } else box.scrollLeft = prev;
     }
+    // ---- Quantity APD vs ABD ----
+    function renderQty(rows) {
+      const items = state.data.qty_items || [];
+      if (!items.length) return;
+      const sum = (list, key, i) => list.reduce((a, r) => a + (r[key]?.[i] || 0), 0);
+      el('qtySum').innerHTML = items.map((name, i) => {
+        const a = sum(rows, 'apd', i), b = sum(rows, 'abd', i), p = a ? b / a : 0;
+        return `<tr><td><b>${safe(name)}</b></td><td class="num">${fmtInt(a)}</td><td class="num">${fmtInt(b)}</td><td class="num">${b - a > 0 ? '+' : ''}${fmtInt(b - a)}</td>` +
+          `<td><div style="display:flex;align-items:center;gap:8px"><div class="bar" style="flex:1"><i style="width:${Math.min(100, p * 100).toFixed(1)}%"></i></div><span class="muted" style="min-width:48px;text-align:right">${a ? fmtPct(p, 0) : '-'}</span></div></td></tr>`;
+      }).join('');
+      const head = first => `<thead><tr><th>${first}</th>${items.map(n => `<th class="num">${safe(n)}<br><span style="font-weight:500;text-transform:none;letter-spacing:0">APD / ABD</span></th>`).join('')}</tr></thead>`;
+      const cells = list => items.map((n, i) => `<td class="num">${fmtInt(sum(list, 'apd', i))} / ${fmtInt(sum(list, 'abd', i))}</td>`).join('');
+      const byArea = new Map();
+      rows.forEach(r => { const a = areaOf(r); (byArea.get(a) || byArea.set(a, []).get(a)).push(r); });
+      el('qtyArea').innerHTML = rows.length ? `<table>${head('Area')}<tbody>` +
+        [...byArea.entries()].sort((x, y) => x[0].localeCompare(y[0])).map(([a, l]) => `<tr><td><b>${safe(a)}</b> <span class="muted">(${l.length} site)</span></td>${cells(l)}</tr>`).join('') + '</tbody></table>' : '<p class="muted" style="padding:12px">Tidak ada data.</p>';
+      const bySite = [...rows].sort((x, y) => (x.no ?? 0) - (y.no ?? 0));
+      el('qtySite').innerHTML = rows.length ? `<table>${head('Site')}<tbody>` +
+        bySite.map(r => `<tr><td><b>${safe(r.no)}.</b> ${safe(r.origin_name || '-')} <span class="muted">${safe(areaOf(r))}</span></td>${cells([r])}</tr>`).join('') + '</tbody></table>' : '<p class="muted" style="padding:12px">Tidak ada data.</p>';
+    }
     function renderAll() {
       const rows = filtered(), stats = areaStats(rows);
       el('fCount').textContent = `Menampilkan ${fmtInt(rows.length)} dari ${fmtInt(state.data.rows.length)} site.`;
-      renderKpi(rows); renderTop5(stats); renderTrend(rows); renderFunnel(rows); renderRank(stats); renderMap(stats); renderTimeline(rows); renderOpen(rows);
+      renderKpi(rows); renderTop5(stats); renderTrend(rows); renderFunnel(rows); renderRank(stats); renderQty(rows); renderMap(stats); renderTimeline(rows); renderOpen(rows);
       if (el('drill').open) renderDrill();
       state.firstRender = false;
     }
