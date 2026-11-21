@@ -118,7 +118,7 @@
     <div class="muted" id="fCount" style="margin-top:8px"></div>
   </section>
 
-  <div class="cards c4" id="kpi1"></div>
+  <div class="cards" id="kpi1"></div>
   <div class="cards" id="kpi2"></div>
   <p class="legend">
     <span class="dot" style="background:var(--green);margin-left:0"></span>Hijau = tercapai
@@ -287,7 +287,7 @@
     function kpiCard(lbl, val, sub, lv, pct, extra = '', key = '') {
       const bar = pct == null ? '' : `<div class="mini"><i style="width:${Math.max(0, Math.min(100, pct * 100)).toFixed(1)}%"></i></div>`;
       const act = key ? ` click" tabindex="0" role="button" data-k="${safe(key)}" aria-label="Lihat daftar site: ${safe(lbl)}` : '';
-      return `<div class="card ${lv} ${extra}${act}"><div class="lbl">${safe(lbl)}</div><div class="val">${safe(val)}</div>${bar}<div class="sub">${safe(sub)}</div><span class="tag">${safe(LV[lv])}</span>${key ? '<div class="go">Lihat daftar site &rarr;</div>' : ''}</div>`;
+      return `<div class="card ${lv} ${extra}${act}"><div class="lbl">${safe(lbl)}</div><div class="val">${safe(val)}</div>${bar}<div class="sub">${safe(sub)}</div>${key ? '<div class="go">Lihat daftar site &rarr;</div>' : ''}</div>`;
     }
     function renderKpi(rows) {
       const n = rows.length, cnt = fn => rows.filter(fn).length, pct = x => n ? x / n : 0;
@@ -299,7 +299,10 @@
       const selesai = cnt(isSel), onprog = cnt(isRun), belum = cnt(isBelum);
       const avg = n ? rows.reduce((a, r) => a + (r.progress || 0), 0) / n : 0;
       const oaN = cnt(isOA), atpN = cnt(isATP), ready = cnt(isReady), rel = cnt(isRel);
+      const isPull = r => isDone(r, 'PULLING CABLE');
+      const pullN = cnt(isPull), pullApp = cnt(r => r.ms[msIdx('PULLING CABLE')] !== null);
       state.drill = {
+        pull:    { title: 'Site pulling cable selesai', fn: isPull },
         total:   { title: 'Total site', fn: () => true },
         selesai: { title: 'Site selesai', fn: isSel },
         run:     { title: 'Site sedang berjalan', fn: isRun },
@@ -314,7 +317,8 @@
         kpiCard('Total site', fmtInt(n), `dari ${fmtInt(state.data.rows.length)} site`, 'n', null, '', 'total') +
         kpiCard('Selesai', fmtInt(selesai), fmtPct(pct(selesai)) + ' dari total', hi(pct(selesai)), pct(selesai), '', 'selesai') +
         kpiCard('Sedang berjalan', fmtInt(onprog), fmtPct(pct(onprog)) + ' dari total (termasuk hampir selesai)', 'n', pct(onprog), '', 'run') +
-        kpiCard('Belum mulai', fmtInt(belum), fmtPct(pct(belum)) + ' dari total', lo(pct(belum)), pct(belum), '', 'belum');
+        kpiCard('Belum mulai', fmtInt(belum), fmtPct(pct(belum)) + ' dari total', lo(pct(belum)), pct(belum), '', 'belum') +
+        kpiCard('Pulling cable', fmtInt(pullN), `${fmtPct(pullApp ? pullN / pullApp : 0)} dari ${fmtInt(pullApp)} site`, hi(pullApp ? pullN / pullApp : 0), pullApp ? pullN / pullApp : 0, '', 'pull');
       el('kpi2').innerHTML =
         kpiCard('Rata-rata progres', fmtPct(avg), `rata-rata ${fmtInt(n)} site`, hi(avg), avg, '', 'avg') +
         kpiCard('On air / RFS', fmtInt(oaN), fmtPct(pct(oaN)) + ' dari total', hi(pct(oaN)), pct(oaN), '', 'oa') +
