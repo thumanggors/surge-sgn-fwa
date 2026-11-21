@@ -30,7 +30,7 @@
     .filterbar { margin-top:-64px; position:relative; box-shadow:0 18px 40px -18px rgba(15,23,42,.35); }
     .head { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; align-items:center; margin-bottom:12px; }
     .alert { display:none; background:var(--r-bg); color:var(--red); padding:12px 14px; border-radius:12px; margin:16px 0; border:1px solid #fecaca; }
-    .filters { display:grid; grid-template-columns: repeat(5, 1fr) auto; gap:12px; align-items:end; }
+    .filters { display:grid; grid-template-columns: repeat(6, 1fr) auto; gap:12px; align-items:end; }
     .filters label { display:grid; gap:6px; font-size:11px; color:var(--muted); font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
     .filters select, .filters input { padding:10px 12px; font-size:14px; border:1px solid #d5dae3; border-radius:10px; background:#fafbfd; min-width:0; color:var(--ink); transition:border-color .15s, box-shadow .15s; }
     .filters select:focus, .filters input:focus { outline:none; border-color:var(--gold); box-shadow:0 0 0 3px rgba(201,162,75,.2); }
@@ -110,6 +110,7 @@
       <label>Periode (bulan target)<select id="fPeriode"></select></label>
       <label>Area<select id="fArea"></select></label>
       <label>SPK<select id="fSpk"></select></label>
+      <label>Project name<select id="fProject"></select></label>
       <label>SITE ID SURGE<input id="fId" type="search" placeholder="mis. 36TNG_0468"></label>
       <label>SITE NAME SURGE<input id="fName" type="search" placeholder="mis. ALFAMART"></label>
       <button id="fReset" type="button">Reset</button>
@@ -170,7 +171,7 @@
   <script>
     const el = id => document.getElementById(id);
     const safe = v => String(v ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-    const state = { data: null, f: { periode:'', area:'', spk:'', id:'', name:'' }, openAreas: new Set(), firstRender: true, loading: false };
+    const state = { data: null, f: { periode:'', area:'', spk:'', project:'', id:'', name:'' }, openAreas: new Set(), firstRender: true, loading: false };
     const NO_AREA = '(TANPA AREA)';
     const ITER = 200000; // harus sama dengan sync_github.py
 
@@ -246,20 +247,22 @@
         (!f.periode || r.bulan_target === f.periode) &&
         (!f.area || areaOf(r) === f.area) &&
         (!f.spk || String(r.spk) === f.spk) &&
+        (!f.project || r.project === f.project) &&
         (!q1 || [r.origin_surge, r.dest_surge].some(v => (v || '').toLowerCase().includes(q1))) &&
         (!q2 || [r.origin_name, r.dest_name].some(v => (v || '').toLowerCase().includes(q2))));
     }
     function fillSelect(id, values, labelFn, allLabel) {
-      const s = el(id), cur = state.f[{fPeriode:'periode', fArea:'area', fSpk:'spk'}[id]];
+      const s = el(id), cur = state.f[{fPeriode:'periode', fArea:'area', fSpk:'spk', fProject:'project'}[id]];
       s.innerHTML = `<option value="">${safe(allLabel)}</option>` +
         values.map(v => `<option value="${safe(v)}"${v === cur ? ' selected' : ''}>${safe(labelFn(v))}</option>`).join('');
-      if (cur && !values.includes(cur)) { state.f[{fPeriode:'periode', fArea:'area', fSpk:'spk'}[id]] = ''; s.value = ''; }
+      if (cur && !values.includes(cur)) { state.f[{fPeriode:'periode', fArea:'area', fSpk:'spk', fProject:'project'}[id]] = ''; s.value = ''; }
     }
     function buildFilters() {
       const rows = state.data.rows, uniq = fn => [...new Set(rows.map(fn).filter(Boolean))];
       fillSelect('fPeriode', uniq(r => r.bulan_target).sort(), monLabel, '(Semua periode)');
       fillSelect('fArea', uniq(areaOf).sort(), v => v, '(Semua area)');
-      fillSelect('fSpk', uniq(r => r.spk == null ? null : String(r.spk)).sort((a, b) => a - b), v => 'SPK ' + v, '(Semua SPK)');
+      fillSelect('fProject', uniq(r => r.project).sort(), v => v, '(Semua project)');
+      fillSelect('fSpk',uniq(r => r.spk == null ? null : String(r.spk)).sort((a, b) => a - b), v => 'SPK ' + v, '(Semua SPK)');
     }
 
     // ---- Agregasi per area ----
@@ -337,8 +340,8 @@
       const x = drillRows(); if (!x) return;
       el('drillTitle').textContent = x.d.title;
       el('drillCount').textContent = `${fmtInt(x.list.length)} site (sesuai filter yang aktif)`;
-      el('drillBody').innerHTML = x.list.length ? `<div class="scroll"><table><thead><tr><th class="num">NO</th><th>Area</th><th>Site ID Surge (origin)</th><th>Site name (origin)</th><th>Site ID Surge (dest)</th><th>Site name (dest)</th><th>SPK</th><th>PIC</th><th class="num">Progres</th><th class="num">Lama (hari)</th></tr></thead><tbody>` +
-        x.list.map(r => { const a = ageDays(r); return `<tr><td class="num">${safe(r.no)}</td><td>${safe(areaOf(r))}</td><td>${safe(r.origin_surge || '-')}</td><td>${safe(r.origin_name || '-')}</td><td>${safe(r.dest_surge || '-')}</td><td>${safe(r.dest_name || '-')}</td><td>${safe(r.spk ?? '-')}</td><td>${safe(r.pic || '-')}</td><td class="num">${fmtPct(r.progress || 0, 0)}</td><td class="num">${a === null ? '-' : fmtInt(a)}</td></tr>`; }).join('') +
+      el('drillBody').innerHTML = x.list.length ? `<div class="scroll"><table><thead><tr><th class="num">NO</th><th>Area</th><th>Site ID Surge (origin)</th><th>Site name (origin)</th><th>Site ID Surge (dest)</th><th>Site name (dest)</th><th>Project name</th><th>SPK</th><th>PIC</th><th class="num">Progres</th><th class="num">Lama (hari)</th></tr></thead><tbody>` +
+        x.list.map(r => { const a = ageDays(r); return `<tr><td class="num">${safe(r.no)}</td><td>${safe(areaOf(r))}</td><td>${safe(r.origin_surge || '-')}</td><td>${safe(r.origin_name || '-')}</td><td>${safe(r.dest_surge || '-')}</td><td>${safe(r.dest_name || '-')}</td><td>${safe(r.project || '-')}</td><td>${safe(r.spk ?? '-')}</td><td>${safe(r.pic || '-')}</td><td class="num">${fmtPct(r.progress || 0, 0)}</td><td class="num">${a === null ? '-' : fmtInt(a)}</td></tr>`; }).join('') +
         '</tbody></table></div>' : '<p class="muted" style="padding:18px">Tidak ada site pada kategori ini.</p>';
     }
     function openDrill(k) {
@@ -418,10 +421,10 @@
         items.sort((a, b) => (b.age ?? -1) - (a.age ?? -1));
         const ages = items.map(i => i.age).filter(a => a !== null), avgAge = ages.length ? Math.round(ages.reduce((a, b) => a + b, 0) / ages.length) : null;
         const body = items.map(({ r, age }) => {
-          return `<tr><td>${safe(r.origin_surge || '-')}</td><td>${safe(r.origin_name || '-')}</td><td>${safe(r.dest_surge || '-')}</td><td>${safe(r.dest_name || '-')}</td><td>${safe(r.spk ?? '-')}</td><td>${safe(r.pic || '-')}</td><td class="num">${fmtPct(r.progress || 0, 0)}</td><td class="num">${age === null ? '-' : fmtInt(age)}</td><td>${safe(r.gap || '-')}</td></tr>`;
+          return `<tr><td>${safe(r.origin_surge || '-')}</td><td>${safe(r.origin_name || '-')}</td><td>${safe(r.dest_surge || '-')}</td><td>${safe(r.dest_name || '-')}</td><td>${safe(r.project || '-')}</td><td>${safe(r.spk ?? '-')}</td><td>${safe(r.pic || '-')}</td><td class="num">${fmtPct(r.progress || 0, 0)}</td><td class="num">${age === null ? '-' : fmtInt(age)}</td><td>${safe(r.gap || '-')}</td></tr>`;
         }).join('');
         return `<details data-a="${safe(area)}"${state.openAreas.has(area) ? ' open' : ''}><summary>${safe(area)} &middot; ${fmtInt(items.length)} site dalam pengerjaan &middot; rata-rata lama ${avgAge === null ? '-' : fmtInt(avgAge) + ' hari'}</summary>
-          <div class="scroll"><table><thead><tr><th>Site ID Surge (origin)</th><th>Site name (origin)</th><th>Site ID Surge (dest)</th><th>Site name (dest)</th><th>SPK</th><th>PIC</th><th class="num">Progress</th><th class="num">Lama (hari)</th><th>GAP</th></tr></thead><tbody>${body}</tbody></table></div></details>`;
+          <div class="scroll"><table><thead><tr><th>Site ID Surge (origin)</th><th>Site name (origin)</th><th>Site ID Surge (dest)</th><th>Site name (dest)</th><th>Project name</th><th>SPK</th><th>PIC</th><th class="num">Progress</th><th class="num">Lama (hari)</th><th>GAP</th></tr></thead><tbody>${body}</tbody></table></div></details>`;
       }).join('');
       el('openList').querySelectorAll('details[data-a]').forEach(d => d.addEventListener('toggle', () => {
         d.open ? state.openAreas.add(d.dataset.a) : state.openAreas.delete(d.dataset.a);
@@ -459,15 +462,15 @@
     }
     el('exportBtn').onclick = () => {
       if (!state.data) return;
-      const head = ['Area','SITE ID SURGE (origin)','SITE NAME SURGE (origin)','SITE ID SURGE (dest)','SITE NAME SURGE (dest)','SPK','PIC','Progres (%)','Lama pengerjaan (hari)','GAP'];
+      const head = ['Area','SITE ID SURGE (origin)','SITE NAME SURGE (origin)','SITE ID SURGE (dest)','SITE NAME SURGE (dest)','Project name','SPK','PIC','Progres (%)','Lama pengerjaan (hari)','GAP'];
       const body = openRows(filtered()).sort((a, b) => areaOf(a.r).localeCompare(areaOf(b.r)) || (b.age ?? -1) - (a.age ?? -1))
-        .map(({ r, age }) => [areaOf(r), r.origin_surge, r.origin_name, r.dest_surge, r.dest_name, r.spk, r.pic, Math.round((r.progress || 0) * 1000) / 10, age, r.gap]);
+        .map(({ r, age }) => [areaOf(r), r.origin_surge, r.origin_name, r.dest_surge, r.dest_name, r.project, r.spk, r.pic, Math.round((r.progress || 0) * 1000) / 10, age, r.gap]);
       downloadCsv(head, body, 'site-dalam-pengerjaan.csv');
     };
     el('drillCsv').onclick = () => {
       const x = drillRows(); if (!x) return;
-      downloadCsv(['NO','Area','SITE ID SURGE (origin)','SITE NAME SURGE (origin)','SITE ID SURGE (dest)','SITE NAME SURGE (dest)','SPK','PIC','Progres (%)','Lama pengerjaan (hari)'],
-        x.list.map(r => [r.no, areaOf(r), r.origin_surge, r.origin_name, r.dest_surge, r.dest_name, r.spk, r.pic, Math.round((r.progress || 0) * 1000) / 10, ageDays(r)]),
+      downloadCsv(['NO','Area','SITE ID SURGE (origin)','SITE NAME SURGE (origin)','SITE ID SURGE (dest)','SITE NAME SURGE (dest)','Project name','SPK','PIC','Progres (%)','Lama pengerjaan (hari)'],
+        x.list.map(r => [r.no, areaOf(r), r.origin_surge, r.origin_name, r.dest_surge, r.dest_name, r.project, r.spk, r.pic, Math.round((r.progress || 0) * 1000) / 10, ageDays(r)]),
         'daftar-site.csv');
     };
     ['kpi1', 'kpi2', 'top5'].forEach(id => {
@@ -482,11 +485,11 @@
     el('drill').addEventListener('close', () => { state.drillKey = null; });
 
     // ---- Event filter ----
-    [['fPeriode','periode'], ['fArea','area'], ['fSpk','spk']].forEach(([id, k]) => el(id).onchange = e => { state.f[k] = e.target.value; renderAll(); });
+    [['fPeriode','periode'], ['fArea','area'], ['fSpk','spk'], ['fProject','project']].forEach(([id, k]) => el(id).onchange = e => { state.f[k] = e.target.value; renderAll(); });
     [['fId','id'], ['fName','name']].forEach(([id, k]) => el(id).oninput = e => { state.f[k] = e.target.value; renderAll(); });
     el('fReset').onclick = () => {
-      state.f = { periode:'', area:'', spk:'', id:'', name:'' };
-      ['fPeriode','fArea','fSpk','fId','fName'].forEach(id => el(id).value = '');
+      state.f = { periode:'', area:'', spk:'', project:'', id:'', name:'' };
+      ['fPeriode','fArea','fSpk','fProject','fId','fName'].forEach(id => el(id).value = '');
       renderAll();
     };
 
