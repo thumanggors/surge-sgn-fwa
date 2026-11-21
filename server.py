@@ -178,6 +178,8 @@ class Handler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
             return
+        if path.startswith("/assets/") and path.endswith(".png") and ".." not in path:  # hanya gambar logo
+            return super().do_GET()
         if path in ("/", "/index.html", "/data.enc.json", "/data.admin.enc.json"):  # whitelist: bukan password.txt dll
             if path == "/":
                 self.path = "/index.html"
