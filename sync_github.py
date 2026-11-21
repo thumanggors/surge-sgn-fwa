@@ -1,7 +1,9 @@
 """Pakai: py sync_github.py [--once]
 
 Mengekstrak Excel -> enkripsi AES-256-GCM -> git add/commit/push, hanya bila mtime Excel berubah.
-Password dibaca dari password.txt (file lokal, tidak pernah di-commit).
+Dua role, masing-masing file data dan password sendiri (file password lokal, tidak pernah di-commit):
+  - umum : data.enc.json        <- password.txt        (tanpa nilai rupiah)
+  - admin: data.admin.enc.json  <- password-admin.txt  (ditambah nilai PO, PO invoice, quantity APD/ABD)
 """
 import base64, json, os, subprocess, sys, time
 from datetime import datetime
@@ -13,16 +15,19 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 import server
 
 OUT = server.BASE_DIR / "data.enc.json"
+OUT_ADMIN = server.BASE_DIR / "data.admin.enc.json"
 INTERVAL, ITER = 60, 200_000  # ITER harus sama dengan index.html
 
 
-def read_password():
-    pw_file = server.BASE_DIR / "password.txt"
+def read_password(name="password.txt", required=True):
+    pw_file = server.BASE_DIR / name
     if not pw_file.is_file():
-        raise FileNotFoundError("password.txt belum dibuat (buat file itu, isi password pada satu baris)")
+        if not required:
+            return None
+        raise FileNotFoundError(f"{name} belum dibuat (buat file itu, isi password pada satu baris)")
     pw = pw_file.read_text(encoding="utf-8-sig").strip()
     if not pw:
-        raise ValueError("password.txt kosong")
+        raise ValueError(f"{name} kosong")
     return pw
 
 
@@ -46,6 +51,7 @@ def stamp():
     return datetime.now().strftime("%H:%M:%S")
 
 
+warned_admin = False
 pending_push = False  # True bila ada commit lokal yang belum terkirim (mis. offline)
 
 
@@ -63,10 +69,25 @@ def sync(last_mtime):
         if pending_push:
             push()  # ulangi push saja, tanpa ekstraksi/commit baru
         return mtime  # Excel belum berubah
-    payload = server.extract_dashboard(src)
+    global warned_admin
+    pw_user = read_password()
+    pw_admin = read_password("password-admin.txt", required=False)
+    if pw_admin is not None and pw_admin == pw_user:
+        raise ValueError("password-admin.txt tidak boleh sama dengan password.txt")
+    payload = server.extract_dashboard(src)  # role umum: tanpa nilai rupiah
     payload["meta"].update(source=src.name, stale=False, warning=None)
-    OUT.write_text(encrypt(json.dumps(payload, ensure_ascii=False)), encoding="utf-8")
+    text = json.dumps(payload, ensure_ascii=False)
+    assert not any(k in text for k in ("po_value", "po_invoiced", '"apd"', '"abd"'))  # data admin tak boleh bocor ke role umum
+    OUT.write_text(encrypt(text, pw_user), encoding="utf-8")
     git("add", OUT.name)
+    if pw_admin is not None:
+        padmin = server.extract_dashboard(src, admin=True)
+        padmin["meta"].update(source=src.name, stale=False, warning=None)
+        OUT_ADMIN.write_text(encrypt(json.dumps(padmin, ensure_ascii=False), pw_admin), encoding="utf-8")
+        git("add", OUT_ADMIN.name)
+    elif not warned_admin:
+        print(stamp(), "info: password-admin.txt belum ada, data role admin dilewati")
+        warned_admin = True
     if git("diff", "--cached", "--quiet").returncode == 0:
         return mtime
     c = git("commit", "-m", f"Update data {datetime.now():%Y-%m-%d %H:%M}")

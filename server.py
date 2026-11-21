@@ -69,7 +69,9 @@ def _open(source: Path):
         return load_workbook(tmp, read_only=True, data_only=True, keep_links=False), tmp
 
 
-def extract_dashboard(source: Path) -> dict:
+def extract_dashboard(source: Path, admin: bool = False) -> dict:
+    """admin=True hanya untuk role admin: nilai rupiah PO/invoice dan quantity APD/ABD.
+    Role umum tidak pernah menerima data itu (tidak ikut dikirim sama sekali)."""
     wb, tmp = _open(source)
     try:
         ws = wb[SHEET]
@@ -112,9 +114,12 @@ def extract_dashboard(source: Path) -> dict:
                 "sisa_hari": number(r[61]),
                 "status_jadwal": text(r[62]),
                 "bulan_target": text(r[63]),
-                "apd": [number(r[APD_COL + i]) for i in range(len(QTY_ITEMS))],
-                "abd": [number(r[ABD_COL + i]) for i in range(len(QTY_ITEMS))],
             })
+            if admin:
+                rows[-1]["po_value"] = number(r[18])
+                rows[-1]["po_invoiced"] = number(r[19])
+                rows[-1]["apd"] = [number(r[APD_COL + i]) for i in range(len(QTY_ITEMS))]
+                rows[-1]["abd"] = [number(r[ABD_COL + i]) for i in range(len(QTY_ITEMS))]
         return {
             "meta": {  # hanya nama file, tanpa path lokal
                 "source": source.name,
@@ -123,8 +128,8 @@ def extract_dashboard(source: Path) -> dict:
                 "stale": False, "warning": None,
             },
             "milestones": MILESTONES,
-            "qty_items": QTY_ITEMS,
             "rows": rows,
+            **({"role": "admin", "qty_items": QTY_ITEMS} if admin else {}),
         }
     finally:
         wb.close()
@@ -142,7 +147,7 @@ def cached_json() -> bytes:
     key = (str(src), src.stat().st_mtime_ns)
     with _lock:
         if _cache["key"] != key:
-            _cache["body"] = json.dumps(extract_dashboard(src), ensure_ascii=False).encode("utf-8")
+            _cache["body"] = json.dumps(extract_dashboard(src, admin=True), ensure_ascii=False)  # lokal = PC pemilik = admin.encode("utf-8")
             _cache["key"] = key
         return _cache["body"]
 
@@ -172,7 +177,7 @@ class Handler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
             return
-        if path in ("/", "/index.html", "/data.enc.json"):  # whitelist: bukan password.txt dll
+        if path in ("/", "/index.html", "/data.enc.json", "/data.admin.enc.json"):  # whitelist: bukan password.txt dll
             if path == "/":
                 self.path = "/index.html"
             return super().do_GET()

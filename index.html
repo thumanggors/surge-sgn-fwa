@@ -123,7 +123,7 @@
       <h1>SURGE x PT. SAPUTRA GLOBAL NUSANTARA</h1>
       <div class="muted" id="status">Memuat...</div>
     </div>
-    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div class="live">Pembaruan otomatis tiap 60 detik</div><button id="logoutBtn" type="button" hidden>Keluar</button></div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div class="live">Pembaruan otomatis tiap 60 detik</div><span class="live" id="roleTag" hidden>Admin</span><button id="logoutBtn" type="button" hidden>Keluar</button></div>
   </div></header>
 
   <main class="wrap">
@@ -145,6 +145,7 @@
 
   <div class="cards" id="kpi1"></div>
   <div class="cards" id="kpi2"></div>
+  <div class="cards" id="kpi3"></div>
   <h2 class="sec">Top 5 area &middot; rata-rata % progres</h2>
   <div class="cards" id="top5"></div>
 
@@ -153,8 +154,8 @@
     <section class="panel"><h2>Funnel milestone (Survey &rarr; ATP)</h2><div id="funnel"></div></section>
   </div>
 
-  <section class="panel">
-    <h2>Quantity APD vs ABD <span class="muted">APD = as planned design &middot; ABD = as built drawing &middot; sesuai filter aktif</span></h2>
+  <section class="panel" id="qtyPanel" hidden>
+    <h2 id="qtyTitle">Quantity APD vs ABD <span class="muted">APD = as planned design &middot; ABD = as built drawing &middot; sesuai filter aktif</span></h2>
     <div class="scroll"><table>
       <thead><tr><th>Item</th><th class="num">APD (rencana)</th><th class="num">ABD (terbangun)</th><th class="num">Selisih (ABD &minus; APD)</th><th style="min-width:200px">ABD terhadap APD</th></tr></thead>
       <tbody id="qtySum"></tbody>
@@ -235,21 +236,30 @@
     }
     async function loadEncrypted() {
       const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
-      const res = await fetch(`data.enc.json?t=${Date.now()}`, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`data.enc.json HTTP ${res.status}`);
-      const enc = await res.json();
+      const get = async f => { try { const r = await fetch(`${f}?t=${Date.now()}`, { cache: 'no-store' }); return r.ok ? await r.json() : null; } catch { return null; } };
+      const [admin, user] = await Promise.all([get('data.admin.enc.json'), get('data.enc.json')]);
+      if (!admin && !user) throw new Error('data.enc.json tidak ditemukan');
+      const open = async (enc, pw) => {
+        const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']);
+        const key = await crypto.subtle.deriveKey({ name:'PBKDF2', salt:b64(enc.salt), iterations:ITER, hash:'SHA-256' },
+          base, { name:'AES-GCM', length:256 }, false, ['decrypt']);
+        const plain = await crypto.subtle.decrypt({ name:'AES-GCM', iv:b64(enc.iv) }, key, b64(enc.data));
+        return JSON.parse(new TextDecoder().decode(plain));
+      };
       for (let retry = false; ; retry = true) {
         let pw = null;
         try { pw = sessionStorage.getItem('pw'); } catch {}
         if (!pw || retry) pw = await askPassword(retry);
-        try {
-          const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']);
-          const key = await crypto.subtle.deriveKey({ name:'PBKDF2', salt:b64(enc.salt), iterations:ITER, hash:'SHA-256' },
-            base, { name:'AES-GCM', length:256 }, false, ['decrypt']);
-          const plain = await crypto.subtle.decrypt({ name:'AES-GCM', iv:b64(enc.iv) }, key, b64(enc.data));
-          try { sessionStorage.setItem('pw', pw); } catch {}
-          return JSON.parse(new TextDecoder().decode(plain));
-        } catch { try { sessionStorage.removeItem('pw'); } catch {} }
+        for (const [enc, role] of [[admin, 'admin'], [user, 'user']]) {
+          if (!enc) continue;
+          try {
+            const data = await open(enc, pw);
+            data.role = role; // role ditentukan oleh file mana yang berhasil dibuka, bukan oleh isi data
+            try { sessionStorage.setItem('pw', pw); } catch {}
+            return data;
+          } catch {}
+        }
+        try { sessionStorage.removeItem('pw'); } catch {}
       }
     }
 
@@ -257,6 +267,8 @@
     const areaOf = r => r.area || NO_AREA;
     const picOf = r => r.pic || '(TANPA PIC)';
     const fmtInt = n => (n ?? 0).toLocaleString('id-ID');
+    const fmtRp = n => 'Rp ' + Math.round(n || 0).toLocaleString('id-ID');
+    const fmtRpShort = n => n >= 1e9 ? 'Rp ' + (n / 1e9).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' M' : n >= 1e6 ? 'Rp ' + (n / 1e6).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + ' jt' : fmtRp(n);
     const fmtPct = (n, d = 1) => (n * 100).toLocaleString('id-ID', { minimumFractionDigits: d, maximumFractionDigits: d }) + '%';
     const MON = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
     const monLabel = ym => { const [y, m] = String(ym).split('-'); return MON[(+m || 1) - 1] + ' ' + String(y).slice(2); };
@@ -361,6 +373,14 @@
         kpiCard('Siap ATP', fmtInt(ready), 'Sudah on air, menunggu ATP', ready === 0 ? 'g' : 'y', null, '', 'ready') +
         kpiCard('Sudah ATP', fmtInt(atpN), fmtPct(pct(atpN)) + ' dari total', hi(pct(atpN)), pct(atpN), '', 'atp') +
         kpiCard('PO release', fmtInt(rel), fmtPct(pct(rel)) + ' dari total site', hi(pct(rel)), pct(rel), '', 'rel');
+      if (state.role === 'admin') {
+        const po = rows.reduce((a, r) => a + (r.po_value || 0), 0), inv = rows.reduce((a, r) => a + (r.po_invoiced || 0), 0), ip = po ? inv / po : 0;
+        state.drill.po  = { title: 'Site dengan nilai PO (nilai terbesar dulu)', fn: r => (r.po_value || 0) > 0, sort: (a, b) => (b.po_value || 0) - (a.po_value || 0), po: true };
+        state.drill.inv = { title: 'Site yang sudah di-invoice', fn: r => (r.po_invoiced || 0) > 0, sort: (a, b) => (b.po_invoiced || 0) - (a.po_invoiced || 0), po: true };
+        el('kpi3').innerHTML =
+          kpiCard('Nilai PO', fmtRpShort(po), fmtRp(po) + ` dari ${fmtInt(cnt(r => (r.po_value || 0) > 0))} site`, 'n', null, '', 'po') +
+          kpiCard('PO invoice', fmtRpShort(inv), `${fmtRp(inv)} (${fmtPct(ip)} dari nilai PO)`, hi(ip), ip, '', 'inv');
+      } else el('kpi3').innerHTML = '';
     }
     function renderTop5(stats) {
       if (!stats.length) { el('top5').innerHTML = '<p class="muted">Tidak ada data.</p>'; return; }
@@ -379,9 +399,10 @@
     function renderDrill() {
       const x = drillRows(); if (!x) return;
       el('drillTitle').textContent = x.d.title;
+      const po = !!x.d.po && state.role === 'admin';
       el('drillCount').textContent = `${fmtInt(x.list.length)} site (sesuai filter yang aktif)`;
-      el('drillBody').innerHTML = x.list.length ? `<div class="scroll"><table><thead><tr><th class="num">NO</th><th>Area</th><th>Site ID Surge (origin)</th><th>Site name (origin)</th><th>Site ID Surge (dest)</th><th>Site name (dest)</th><th>Project name</th><th>SPK</th><th>PIC</th><th class="num">Progres</th><th class="num">Lama (hari)</th></tr></thead><tbody>` +
-        x.list.map(r => { const a = ageDays(r); return `<tr><td class="num">${safe(r.no)}</td><td>${safe(areaOf(r))}</td><td>${safe(r.origin_surge || '-')}</td><td>${safe(r.origin_name || '-')}</td><td>${safe(r.dest_surge || '-')}</td><td>${safe(r.dest_name || '-')}</td><td>${safe(r.project || '-')}</td><td>${safe(r.spk ?? '-')}</td><td>${safe(r.pic || '-')}</td><td class="num">${fmtPct(r.progress || 0, 0)}</td><td class="num">${a === null ? '-' : fmtInt(a)}</td></tr>`; }).join('') +
+      el('drillBody').innerHTML = x.list.length ? `<div class="scroll"><table><thead><tr><th class="num">NO</th><th>Area</th><th>Site ID Surge (origin)</th><th>Site name (origin)</th><th>Site ID Surge (dest)</th><th>Site name (dest)</th><th>Project name</th><th>SPK</th><th>PIC</th><th class="num">Progres</th><th class="num">Lama (hari)</th>${po ? '<th class="num">Nilai PO (Rp)</th><th class="num">PO invoice (Rp)</th>' : ''}</tr></thead><tbody>` +
+        x.list.map(r => { const a = ageDays(r); return `<tr><td class="num">${safe(r.no)}</td><td>${safe(areaOf(r))}</td><td>${safe(r.origin_surge || '-')}</td><td>${safe(r.origin_name || '-')}</td><td>${safe(r.dest_surge || '-')}</td><td>${safe(r.dest_name || '-')}</td><td>${safe(r.project || '-')}</td><td>${safe(r.spk ?? '-')}</td><td>${safe(r.pic || '-')}</td><td class="num">${fmtPct(r.progress || 0, 0)}</td><td class="num">${a === null ? '-' : fmtInt(a)}</td>${po ? `<td class="num">${fmtInt(r.po_value)}</td><td class="num">${fmtInt(r.po_invoiced)}</td>` : ''}</tr>`; }).join('') +
         '</tbody></table></div>' : '<p class="muted" style="padding:18px">Tidak ada site pada kategori ini.</p>';
     }
     function openDrill(k) {
@@ -509,7 +530,8 @@
     // ---- Quantity APD vs ABD ----
     function renderQty(rows) {
       const items = state.data.qty_items || [];
-      if (!items.length) return;
+      el('qtyPanel').hidden = state.role !== 'admin' || !items.length; // hanya admin
+      if (el('qtyPanel').hidden) return;
       const sum = (list, key, i) => list.reduce((a, r) => a + (r[key]?.[i] || 0), 0);
       el('qtySum').innerHTML = items.map((name, i) => {
         const a = sum(rows, 'apd', i), b = sum(rows, 'abd', i), p = a ? b / a : 0;
@@ -535,6 +557,8 @@
     }
     function render(data) {
       state.data = data;
+      state.role = data.role || 'user';
+      el('roleTag').hidden = state.role !== 'admin';
       buildFilters();
       const loaded = new Date().toLocaleTimeString('id-ID');
       el('status').textContent = `Sumber: ${data.meta.source} · Excel disimpan: ${new Date(data.meta.file_modified).toLocaleString('id-ID')} · Dimuat: ${loaded}`;
@@ -569,7 +593,7 @@
         x.list.map(r => [r.no, areaOf(r), r.origin_surge, r.origin_name, r.dest_surge, r.dest_name, r.project, r.spk, r.pic, Math.round((r.progress || 0) * 1000) / 10, ageDays(r)]),
         'daftar-site.csv');
     };
-    ['kpi1', 'kpi2', 'top5'].forEach(id => {
+    ['kpi1', 'kpi2', 'kpi3', 'top5'].forEach(id => {
       el(id).addEventListener('click', e => { const c = e.target.closest('[data-k]'); if (c) openDrill(c.dataset.k); });
       el(id).addEventListener('keydown', e => {
         if (e.key !== 'Enter' && e.key !== ' ') return;
