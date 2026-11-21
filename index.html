@@ -71,8 +71,8 @@
     #exportBtn:hover { filter:brightness(1.08); }
     .cards { display:grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap:16px; margin-bottom:16px; }
     .cards.c4 { grid-template-columns: repeat(4, minmax(0,1fr)); }
-    .cards.c2 { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width:760px; }
-    .cards.c2 .val { font-size:clamp(22px, 2.2vw, 28px); white-space:nowrap; }
+    .cards.c3 { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width:1180px; }
+    .cards.c3 .val { font-size:clamp(22px, 2.2vw, 28px); white-space:nowrap; }
     .card { position:relative; background:var(--card); border-radius:12px; padding:18px 18px 16px; box-shadow:0 2px 12px rgba(30,70,130,.07); min-width:0; transition:transform .18s, box-shadow .18s; }
     .card.click { cursor:pointer; }
     .card.click:hover { transform:translateY(-2px); box-shadow:0 12px 26px -12px rgba(30,70,130,.3); }
@@ -180,9 +180,9 @@
     .lg-btn:active { transform:translateY(0); }
     @media (max-width: 760px) { .lg-blob { display:none; } }
     @media (max-width: 1200px) { .filters { grid-template-columns: repeat(4, minmax(0,1fr)); } }
-    @media (max-width: 1000px) { .cards, .cards.c4 { grid-template-columns: repeat(2, minmax(0,1fr)); } .grid2, .grid3 { grid-template-columns: 1fr; } }
+    @media (max-width: 1000px) { .cards, .cards.c4, .cards.c3 { grid-template-columns: repeat(2, minmax(0,1fr)); } .grid2, .grid3 { grid-template-columns: 1fr; } }
     @media (max-width: 700px) { .filters { grid-template-columns: repeat(2, minmax(0,1fr)); } }
-    @media (max-width: 560px) { .cards, .cards.c4, .cards.c2 { grid-template-columns: minmax(0, 1fr); max-width:none; } .filters { grid-template-columns: minmax(0,1fr); } .wrap { padding:0 14px; } .topbar h1 { font-size:19px; } .hd-row.r2 { display:none; } .topbar .hd-fg { padding-top:58px; padding-bottom:22px; } .hd-tile { height:40px; padding:0 14px; } .hd-tile img { height:26px; } }
+    @media (max-width: 560px) { .cards, .cards.c4, .cards.c3 { grid-template-columns: minmax(0, 1fr); max-width:none; } .filters { grid-template-columns: minmax(0,1fr); } .wrap { padding:0 14px; } .topbar h1 { font-size:19px; } .hd-row.r2 { display:none; } .topbar .hd-fg { padding-top:58px; padding-bottom:22px; } .hd-tile { height:40px; padding:0 14px; } .hd-tile img { height:26px; } }
   </style>
 </head>
 <body>
@@ -221,7 +221,7 @@
 
   <div class="cards" id="kpi1"></div>
   <div class="cards" id="kpi2"></div>
-  <div class="cards c2" id="kpi3"></div>
+  <div class="cards c3" id="kpi3"></div>
   <h2 class="sec">Top 5 area &middot; rata-rata % progres</h2>
   <div class="cards" id="top5"></div>
 
@@ -367,6 +367,7 @@
     const hi = p => p >= .8 ? 'g' : p >= .4 ? 'y' : 'r';       // makin tinggi makin baik
     const lo = p => p <= .1 ? 'g' : p <= .3 ? 'y' : 'r';       // makin rendah makin baik
     const msIdx = n => state.data.milestones.indexOf(n);
+    const outst = r => Math.max(0, (r.po_value || 0) - (r.po_invoiced || 0)); // PO outstanding per site (admin)
     const isDone = (r, name) => r.ms[msIdx(name)] === true;
     const isOpen = r => r.status_progres !== 'SELESAI';
     const validDate = s => { const d = s ? new Date(s) : null; return d && !isNaN(d) && d.getFullYear() >= 2020 ? d : null; };
@@ -469,9 +470,12 @@
         const po = rows.reduce((a, r) => a + (r.po_value || 0), 0), inv = rows.reduce((a, r) => a + (r.po_invoiced || 0), 0), ip = po ? inv / po : 0;
         state.drill.po  = { title: 'Site dengan nilai PO (nilai terbesar dulu)', fn: r => (r.po_value || 0) > 0, sort: (a, b) => (b.po_value || 0) - (a.po_value || 0), po: true };
         state.drill.inv = { title: 'Site yang sudah di-invoice', fn: r => (r.po_invoiced || 0) > 0, sort: (a, b) => (b.po_invoiced || 0) - (a.po_invoiced || 0), po: true };
+        const out = rows.reduce((a, r) => a + outst(r), 0), op = po ? out / po : 0;
+        state.drill.out = { title: 'Site dengan PO outstanding / belum invoice (terbesar dulu)', fn: r => outst(r) > 0, sort: (a, b) => outst(b) - outst(a), po: true };
         el('kpi3').innerHTML =
           kpiCard('Nilai PO', fmtRp(po), `dari ${fmtInt(cnt(r => (r.po_value || 0) > 0))} site`, 'n', null, '', 'po') +
-          kpiCard('PO invoice', fmtRp(inv), `${fmtPct(ip)} dari nilai PO`, hi(ip), ip, '', 'inv');
+          kpiCard('PO invoice', fmtRp(inv), `${fmtPct(ip)} dari nilai PO`, hi(ip), ip, '', 'inv') +
+          kpiCard('PO outstanding', fmtRp(out), `Belum invoice · ${fmtPct(op)} dari nilai PO`, lo(op), op, '', 'out');
       } else el('kpi3').innerHTML = '';
     }
     function renderTop5(stats) {
@@ -493,8 +497,8 @@
       el('drillTitle').textContent = x.d.title;
       const po = !!x.d.po && state.role === 'admin';
       el('drillCount').textContent = `${fmtInt(x.list.length)} site (sesuai filter yang aktif)`;
-      el('drillBody').innerHTML = x.list.length ? `<div class="scroll"><table><thead><tr><th class="num">NO</th><th>Area</th><th>Site ID Surge (origin)</th><th>Site name (origin)</th><th>Site ID Surge (dest)</th><th>Site name (dest)</th><th>Project name</th><th>SPK</th><th>PIC</th><th class="num">Progres</th><th class="num">Lama (hari)</th>${po ? '<th class="num">Nilai PO (Rp)</th><th class="num">PO invoice (Rp)</th>' : ''}</tr></thead><tbody>` +
-        x.list.map(r => { const a = ageDays(r); return `<tr><td class="num">${safe(r.no)}</td><td>${safe(areaOf(r))}</td><td>${safe(r.origin_surge || '-')}</td><td>${safe(r.origin_name || '-')}</td><td>${safe(r.dest_surge || '-')}</td><td>${safe(r.dest_name || '-')}</td><td>${safe(r.project || '-')}</td><td>${safe(r.spk ?? '-')}</td><td>${safe(r.pic || '-')}</td><td class="num">${fmtPct(r.progress || 0, 0)}</td><td class="num">${a === null ? '-' : fmtInt(a)}</td>${po ? `<td class="num">${fmtInt(r.po_value)}</td><td class="num">${fmtInt(r.po_invoiced)}</td>` : ''}</tr>`; }).join('') +
+      el('drillBody').innerHTML = x.list.length ? `<div class="scroll"><table><thead><tr><th class="num">NO</th><th>Area</th><th>Site ID Surge (origin)</th><th>Site name (origin)</th><th>Site ID Surge (dest)</th><th>Site name (dest)</th><th>Project name</th><th>SPK</th><th>PIC</th><th class="num">Progres</th><th class="num">Lama (hari)</th>${po ? '<th class="num">Nilai PO (Rp)</th><th class="num">PO invoice (Rp)</th><th class="num">Outstanding (Rp)</th>' : ''}</tr></thead><tbody>` +
+        x.list.map(r => { const a = ageDays(r); return `<tr><td class="num">${safe(r.no)}</td><td>${safe(areaOf(r))}</td><td>${safe(r.origin_surge || '-')}</td><td>${safe(r.origin_name || '-')}</td><td>${safe(r.dest_surge || '-')}</td><td>${safe(r.dest_name || '-')}</td><td>${safe(r.project || '-')}</td><td>${safe(r.spk ?? '-')}</td><td>${safe(r.pic || '-')}</td><td class="num">${fmtPct(r.progress || 0, 0)}</td><td class="num">${a === null ? '-' : fmtInt(a)}</td>${po ? `<td class="num">${fmtInt(r.po_value)}</td><td class="num">${fmtInt(r.po_invoiced)}</td><td class="num">${fmtInt(outst(r))}</td>` : ''}</tr>`; }).join('') +
         '</tbody></table></div>' : '<p class="muted" style="padding:18px">Tidak ada site pada kategori ini.</p>';
     }
     function openDrill(k) {
@@ -664,10 +668,16 @@
       el('qtySite').innerHTML = rows.length ? `<table>${head('Site')}<tbody>` +
         bySite.map(r => `<tr><td><b>${safe(r.no)}.</b> ${safe(r.origin_name || '-')} <span class="muted">${safe(areaOf(r))}</span></td>${cells([r])}</tr>`).join('') + '</tbody></table>' : '<p class="muted" style="padding:12px">Tidak ada data.</p>';
     }
+    function renderSubtitle(rows) {
+      const n = rows.length, areas = new Set(rows.map(areaOf)).size, avg = n ? rows.reduce((a, r) => a + (r.progress || 0), 0) / n : 0;
+      const oa = rows.filter(r => isDone(r, 'ON AIR / RFS')).length, atp = rows.filter(r => isDone(r, 'ATP')).length;
+      const filt = Object.values(state.f).some(Boolean);
+      el('status').textContent = `Ringkasan progres pembangunan jaringan${filt ? ' (sesuai filter)' : ''}: ${fmtInt(n)} site di ${fmtInt(areas)} area · rata-rata progres ${fmtPct(avg)} · ${fmtInt(oa)} on air · ${fmtInt(atp)} sudah ATP` + (state.subTail || '');
+    }
     function renderAll() {
       const rows = filtered(), stats = areaStats(rows);
       el('fCount').textContent = `Menampilkan ${fmtInt(rows.length)} dari ${fmtInt(state.data.rows.length)} site.`;
-      renderKpi(rows); renderTop5(stats); renderTrend(rows); renderFunnel(rows); renderDonut(rows); renderRank(stats); renderQty(rows); renderMap(stats); renderTimeline(rows); renderOpen(rows);
+      renderSubtitle(rows); renderKpi(rows); renderTop5(stats); renderTrend(rows); renderFunnel(rows); renderDonut(rows); renderRank(stats); renderQty(rows); renderMap(stats); renderTimeline(rows); renderOpen(rows);
       if (el('drill').open) renderDrill();
       state.firstRender = false;
     }
@@ -676,11 +686,10 @@
       state.role = data.role || 'user';
       el('roleTag').hidden = state.role !== 'admin';
       buildFilters();
-      const loaded = new Date().toLocaleTimeString('id-ID');
-      el('status').textContent = `Sumber: ${data.meta.source} · Excel disimpan: ${new Date(data.meta.file_modified).toLocaleString('id-ID')} · Dimuat: ${loaded}`;
       el('alert').style.display = 'none';
+      const stamp = new Date(data.meta.file_modified).toLocaleString('id-ID', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
       const bad = data.rows.filter(r => r.actual_start && !validDate(r.actual_start)).map(r => r.no);
-      if (bad.length) el('status').textContent += ` · Perhatian: tanggal actual start tidak valid pada NO ${bad.join(', ')} (periksa di Excel)`;
+      state.subTail = ` · Data per ${stamp}` + (bad.length ? ` · Perhatian: tanggal actual start tidak valid pada NO ${bad.join(', ')}` : '');
       renderAll();
     }
 
