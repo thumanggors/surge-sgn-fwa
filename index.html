@@ -13,7 +13,7 @@
             --g-bg:#d1fae5; --y-bg:#fef3c7; --r-bg:#fee2e2; --n-bg:#e0e7ff; }
     * { box-sizing: border-box; }
     body { font-family: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif; margin:0; background:var(--bg); color:var(--ink); -webkit-font-smoothing:antialiased; font-variant-numeric: tabular-nums; }
-    .wrap { max-width:1280px; margin:0 auto; padding:0 20px; }
+    .wrap { max-width:1900px; margin:0 auto; padding:0 32px; }
     .hero { background: radial-gradient(1200px 400px at 85% -10%, rgba(201,162,75,.22), transparent 60%), linear-gradient(135deg,#0a1120 0%,#14203a 55%,#1c2b4a 100%); color:#fff; padding:30px 0 92px; border-bottom:2px solid var(--gold); }
     .hero .wrap { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:12px; }
     .eyebrow { font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--gold); font-weight:700; margin-bottom:8px; }
@@ -91,6 +91,27 @@
     details > .scroll { padding:0 8px 8px; }
     svg text { font-family: inherit; }
     #map { height:440px; border-radius:12px; border:1px solid var(--line); }
+    .tl { overflow:auto; max-height:560px; border:1px solid var(--line); border-radius:12px; background:#fff; position:relative; }
+    .tl-row { display:flex; height:38px; border-bottom:1px solid var(--line); }
+    .tl-row:hover .tl-info, .tl-row:hover .tl-track { background:#f8f9fc; }
+    .tl-info { position:sticky; left:0; z-index:3; flex:0 0 250px; width:250px; padding:5px 12px; background:#fff; border-right:1px solid var(--line); overflow:hidden; }
+    .tl-info b { display:block; font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .tl-info span { display:block; font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .tl-track { position:relative; flex:0 0 auto; background:#fff; background-image:linear-gradient(90deg, #eef1f6 1px, transparent 1px); }
+    .tl-head { position:sticky; top:0; z-index:5; background:#fafbfd; height:auto; }
+    .tl-head .tl-info { background:#fafbfd; z-index:6; font-size:10.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); display:flex; align-items:center; }
+    .tl-head .tl-track { background:#fafbfd; height:46px; background-image:none; }
+    .tl-m, .tl-w { position:absolute; font-size:10.5px; color:var(--muted); white-space:nowrap; overflow:hidden; border-left:1px solid #dfe3ea; padding-left:4px; }
+    .tl-m { top:4px; font-weight:700; color:var(--ink); }
+    .tl-w { top:26px; font-size:10px; }
+    .tl-bar { position:absolute; border-radius:4px; }
+    .tl-plan { top:6px; height:10px; background:#a5b4fc; }
+    .tl-act { top:20px; height:10px; background:#c9a24b; }
+    .tl-done { top:20px; height:10px; background:#059669; }
+    .tl-oa { position:absolute; top:2px; width:10px; height:10px; background:#4338ca; transform:rotate(45deg); border-radius:2px; margin-left:-5px; }
+    .tl-today { position:absolute; top:0; bottom:0; width:2px; background:#dc2626; z-index:2; pointer-events:none; }
+    .tl-legend { font-size:12px; color:var(--muted); margin:0 0 10px; }
+    .tl-legend .sw { display:inline-block; width:22px; height:8px; border-radius:3px; margin:0 6px 0 14px; vertical-align:middle; }
     @media (max-width: 1000px) { .cards, .cards.c4 { grid-template-columns: repeat(2, 1fr); } .grid2 { grid-template-columns: 1fr; } .filters { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 560px) { .cards, .cards.c4 { grid-template-columns: 1fr; } .filters { grid-template-columns: 1fr; } .wrap { padding:0 14px; } h1 { font-size:22px; } .hero { padding-bottom:84px; } }
   </style>
@@ -143,6 +164,12 @@
     <h2>Peta area <span class="muted">warna = status &middot; ukuran = jumlah site dalam pengerjaan</span></h2>
     <div id="map"></div>
     <div class="muted" id="mapNote" style="margin-top:6px"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Timeplan <span class="muted">sumber: sheet TIMEPLAN AUTO / tracker</span></h2>
+    <div class="tl-legend"><span class="sw" style="background:#a5b4fc;margin-left:0"></span>Plan<span class="sw" style="background:#c9a24b"></span>Actual berjalan<span class="sw" style="background:#059669"></span>Selesai / close<span class="sw" style="width:9px;height:9px;background:#4338ca;transform:rotate(45deg)"></span>Target OA<span class="sw" style="width:2px;height:12px;background:#dc2626"></span>Hari ini &middot; geser ke samping untuk melihat bulan lain</div>
+    <div class="tl" id="timeline"></div>
   </section>
 
   <section class="panel">
@@ -429,10 +456,46 @@
         d.open ? state.openAreas.add(d.dataset.a) : state.openAreas.delete(d.dataset.a);
       }));
     }
+    // ---- Timeplan (Gantt) ----
+    function renderTimeline(rows) {
+      const box = el('timeline'), DAY = 864e5, PX = 7;
+      const d0 = s => { const d = validDate(s); return d ? new Date(d.getFullYear(), d.getMonth(), d.getDate()) : null; };
+      const items = rows.map(r => ({ r, ps: d0(r.plan_start), pe: d0(r.plan_end), as: d0(r.actual_start), ae: d0(r.actual_end), to: d0(r.target_oa) }))
+        .sort((a, b) => (a.r.no ?? 0) - (b.r.no ?? 0));
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const all = items.flatMap(i => [i.ps, i.pe, i.as, i.ae, i.to]).filter(Boolean);
+      if (!items.length || !all.length) { box.innerHTML = '<p class="muted" style="padding:16px">Tidak ada data tanggal pada filter ini.</p>'; return; }
+      all.push(today);
+      const min = new Date(Math.min(...all)); min.setDate(min.getDate() - ((min.getDay() + 6) % 7)); // mulai Senin
+      const max = new Date(Math.max(...all) + 14 * DAY);
+      const days = Math.round((max - min) / DAY) + 1, W = days * PX, x = d => Math.round((d - min) / DAY * PX);
+      let head = '';
+      for (let d = new Date(min.getFullYear(), min.getMonth(), 1); d <= max; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) {
+        const a = Math.max(x(d), 0), e = Math.min(x(new Date(d.getFullYear(), d.getMonth() + 1, 1)), W);
+        head += `<div class="tl-m" style="left:${a}px;width:${e - a}px">${safe(['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][d.getMonth()] + ' ' + d.getFullYear())}</div>`;
+      }
+      for (let w = 0; w * 7 < days; w++) head += `<div class="tl-w" style="left:${w * 7 * PX}px;width:${7 * PX}px">W${w + 1}</div>`;
+      const line = `<i class="tl-today" style="left:${x(today)}px" title="Hari ini"></i>`;
+      const fmt = d => d ? d.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' }) : '-';
+      const body = items.map(({ r, ps, pe, as, ae, to }) => {
+        let bars = '';
+        if (ps) { const e = pe || ps; bars += `<i class="tl-bar tl-plan" style="left:${x(ps)}px;width:${Math.max(PX, x(e) - x(ps) + PX)}px"></i>`; }
+        if (as) {
+          const done = r.status_progres === 'SELESAI', e = ae || (done ? as : today);
+          bars += `<i class="tl-bar ${done ? 'tl-done' : 'tl-act'}" style="left:${x(as)}px;width:${Math.max(PX, x(e < as ? as : e) - x(as) + PX)}px"></i>`;
+        }
+        if (to) bars += `<i class="tl-oa" style="left:${x(to) + PX / 2}px"></i>`;
+        const tip = `${r.origin_name || '-'} | Plan: ${fmt(ps)} - ${fmt(pe)} | Actual: ${fmt(as)} - ${fmt(ae)} | Target OA: ${fmt(to)} | Progres ${fmtPct(r.progress || 0, 0)}`;
+        return `<div class="tl-row" title="${safe(tip)}"><div class="tl-info"><b>${safe(r.no)}. ${safe(r.origin_name || '-')}</b><span>${safe(areaOf(r))} &middot; ${safe(r.pic || 'tanpa PIC')} &middot; ${fmtPct(r.progress || 0, 0)}</span></div><div class="tl-track" style="width:${W}px;background-size:${7 * PX}px 100%">${bars}${line}</div></div>`;
+      }).join('');
+      const prev = box.scrollLeft;
+      box.innerHTML = `<div class="tl-row tl-head"><div class="tl-info">Site</div><div class="tl-track" style="width:${W}px">${head}${line}</div></div>` + body;
+      if (!state.tlScrolled) { box.scrollLeft = Math.max(0, x(today) - 400); state.tlScrolled = true; } else box.scrollLeft = prev;
+    }
     function renderAll() {
       const rows = filtered(), stats = areaStats(rows);
       el('fCount').textContent = `Menampilkan ${fmtInt(rows.length)} dari ${fmtInt(state.data.rows.length)} site.`;
-      renderKpi(rows); renderTop5(stats); renderTrend(rows); renderFunnel(rows); renderRank(stats); renderMap(stats); renderOpen(rows);
+      renderKpi(rows); renderTop5(stats); renderTrend(rows); renderFunnel(rows); renderRank(stats); renderMap(stats); renderTimeline(rows); renderOpen(rows);
       if (el('drill').open) renderDrill();
       state.firstRender = false;
     }
