@@ -20,6 +20,9 @@
     h1 { font-size:28px; font-weight:700; letter-spacing:-.02em; margin:0 0 6px; }
     .hero .muted { color:rgba(255,255,255,.66); font-size:12.5px; max-width:760px; line-height:1.5; }
     .live { font-size:12px; color:rgba(255,255,255,.8); border:1px solid rgba(255,255,255,.18); border-radius:999px; padding:6px 14px; background:rgba(255,255,255,.06); }
+    #logoutBtn { background:rgba(255,255,255,.1); color:#fff; border:1px solid rgba(255,255,255,.25); padding:6px 16px; border-radius:999px; font-size:12px; }
+    #logoutBtn:hover { background:rgba(255,255,255,.22); }
+    #logoutBtn[hidden] { display:none; }
     .live::before { content:""; display:inline-block; width:7px; height:7px; border-radius:50%; background:#34d399; margin-right:8px; box-shadow:0 0 0 4px rgba(52,211,153,.2); }
     main.wrap { padding-bottom:40px; }
     h2 { font-size:15px; font-weight:700; letter-spacing:-.01em; margin:0 0 12px; display:flex; align-items:center; gap:10px; }
@@ -99,7 +102,7 @@
       <h1>SURGE x PT. SAPUTRA GLOBAL NUSANTARA</h1>
       <div class="muted" id="status">Memuat...</div>
     </div>
-    <div class="live">Pembaruan otomatis tiap 60 detik</div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div class="live">Pembaruan otomatis tiap 60 detik</div><button id="logoutBtn" type="button" hidden>Keluar</button></div>
   </div></header>
 
   <main class="wrap">
@@ -120,14 +123,6 @@
 
   <div class="cards" id="kpi1"></div>
   <div class="cards" id="kpi2"></div>
-  <p class="legend">
-    <span class="dot" style="background:var(--green);margin-left:0"></span>Hijau = tercapai
-    <span class="dot" style="background:var(--amber)"></span>Kuning = perlu perhatian
-    <span class="dot" style="background:var(--red)"></span>Merah = di bawah target
-    <span class="dot" style="background:var(--blue)"></span>Indigo = informasi
-    &middot; Ambang: progres/penyelesaian &ge;80% hijau, 40&ndash;79% kuning, &lt;40% merah; overdue &amp; belum mulai &le;10% hijau, &le;30% kuning, &gt;30% merah.
-  </p>
-
   <h2 class="sec">Top 5 area &middot; rata-rata % progres</h2>
   <div class="cards" id="top5"></div>
 
@@ -499,6 +494,9 @@
 
     // ---- Muat data: GitHub Pages -> terenkripsi, lokal -> /api/dashboard ----
     const useEncrypted = () => location.hostname.endsWith('github.io') || new URLSearchParams(location.search).has('enc');
+    // ---- Logout: hapus password dari sessionStorage lalu muat ulang (form password muncul lagi) ----
+    if (useEncrypted()) el('logoutBtn').hidden = false;
+    el('logoutBtn').onclick = () => { try { sessionStorage.removeItem('pw'); } catch {} location.reload(); };
     async function loadData() {
       if (state.loading) return;
       state.loading = true;
