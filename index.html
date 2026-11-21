@@ -43,6 +43,8 @@
     #exportBtn:hover { filter:brightness(1.15); }
     .cards { display:grid; grid-template-columns: repeat(5, 1fr); gap:14px; margin-bottom:14px; }
     .cards.c4 { grid-template-columns: repeat(4, 1fr); }
+    .cards.c2 { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width:760px; }
+    .cards.c2 .val { font-size:clamp(24px, 2.4vw, 32px); white-space:nowrap; }
     .card.click { cursor:pointer; }
     .card.click:focus-visible { outline:2px solid var(--gold); outline-offset:2px; }
     .card .go { font-size:11px; font-weight:600; color:var(--muted); margin-top:10px; opacity:.75; }
@@ -140,7 +142,7 @@
     .lg-btn:active { transform:translateY(0); }
     @media (max-width: 760px) { .lg-blob { display:none; } }
     @media (max-width: 1000px) { .cards, .cards.c4 { grid-template-columns: repeat(2, 1fr); } .grid2 { grid-template-columns: 1fr; } .filters { grid-template-columns: repeat(2, 1fr); } }
-    @media (max-width: 560px) { .cards, .cards.c4 { grid-template-columns: 1fr; } .filters { grid-template-columns: 1fr; } .wrap { padding:0 14px; } h1 { font-size:22px; } .hero { padding-bottom:84px; } }
+    @media (max-width: 560px) { .cards, .cards.c4, .cards.c2 { grid-template-columns: minmax(0, 1fr); max-width:none; } .filters { grid-template-columns: 1fr; } .wrap { padding:0 14px; } h1 { font-size:22px; } .hero { padding-bottom:84px; } }
   </style>
 </head>
 <body>
@@ -172,7 +174,7 @@
 
   <div class="cards" id="kpi1"></div>
   <div class="cards" id="kpi2"></div>
-  <div class="cards" id="kpi3"></div>
+  <div class="cards c2" id="kpi3"></div>
   <h2 class="sec">Top 5 area &middot; rata-rata % progres</h2>
   <div class="cards" id="top5"></div>
 
@@ -308,7 +310,6 @@
     const picOf = r => r.pic || '(TANPA PIC)';
     const fmtInt = n => (n ?? 0).toLocaleString('id-ID');
     const fmtRp = n => 'Rp ' + Math.round(n || 0).toLocaleString('id-ID');
-    const fmtRpShort = n => n >= 1e9 ? 'Rp ' + (n / 1e9).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' M' : n >= 1e6 ? 'Rp ' + (n / 1e6).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + ' jt' : fmtRp(n);
     const fmtPct = (n, d = 1) => (n * 100).toLocaleString('id-ID', { minimumFractionDigits: d, maximumFractionDigits: d }) + '%';
     const MON = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
     const monLabel = ym => { const [y, m] = String(ym).split('-'); return MON[(+m || 1) - 1] + ' ' + String(y).slice(2); };
@@ -418,8 +419,8 @@
         state.drill.po  = { title: 'Site dengan nilai PO (nilai terbesar dulu)', fn: r => (r.po_value || 0) > 0, sort: (a, b) => (b.po_value || 0) - (a.po_value || 0), po: true };
         state.drill.inv = { title: 'Site yang sudah di-invoice', fn: r => (r.po_invoiced || 0) > 0, sort: (a, b) => (b.po_invoiced || 0) - (a.po_invoiced || 0), po: true };
         el('kpi3').innerHTML =
-          kpiCard('Nilai PO', fmtRpShort(po), fmtRp(po) + ` dari ${fmtInt(cnt(r => (r.po_value || 0) > 0))} site`, 'n', null, '', 'po') +
-          kpiCard('PO invoice', fmtRpShort(inv), `${fmtRp(inv)} (${fmtPct(ip)} dari nilai PO)`, hi(ip), ip, '', 'inv');
+          kpiCard('Nilai PO', fmtRp(po), `dari ${fmtInt(cnt(r => (r.po_value || 0) > 0))} site`, 'n', null, '', 'po') +
+          kpiCard('PO invoice', fmtRp(inv), `${fmtPct(ip)} dari nilai PO`, hi(ip), ip, '', 'inv');
       } else el('kpi3').innerHTML = '';
     }
     function renderTop5(stats) {

@@ -147,7 +147,8 @@ def cached_json() -> bytes:
     key = (str(src), src.stat().st_mtime_ns)
     with _lock:
         if _cache["key"] != key:
-            _cache["body"] = json.dumps(extract_dashboard(src, admin=True), ensure_ascii=False)  # lokal = PC pemilik = admin.encode("utf-8")
+            # lokal = PC pemilik = admin
+            _cache["body"] = json.dumps(extract_dashboard(src, admin=True), ensure_ascii=False).encode("utf-8")
             _cache["key"] = key
         return _cache["body"]
 
