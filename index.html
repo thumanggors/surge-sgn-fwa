@@ -73,14 +73,21 @@
     .cards.c4 { grid-template-columns: repeat(4, minmax(0,1fr)); }
     .cards.c3 { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width:1180px; }
     .cards.c3 .val { font-size:clamp(22px, 2.2vw, 28px); white-space:nowrap; }
-    .card { position:relative; background:var(--card); border-radius:12px; padding:18px 18px 16px; box-shadow:0 2px 12px rgba(30,70,130,.07); min-width:0; transition:transform .18s, box-shadow .18s; }
+    .card { display:flex; flex-direction:column; position:relative; background:var(--card); border-radius:12px; padding:18px 18px 16px; box-shadow:0 2px 12px rgba(30,70,130,.07); min-width:0; transition:transform .18s, box-shadow .18s; }
     .card.click { cursor:pointer; }
     .card.click:hover { transform:translateY(-2px); box-shadow:0 12px 26px -12px rgba(30,70,130,.3); }
     .card.click:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
     .card .lbl { font-size:13px; color:var(--muted); font-weight:600; padding-right:22px; }
     .card .val { font-size:27px; font-weight:800; letter-spacing:-.02em; margin:8px 0 4px; line-height:1.15; color:var(--navy); overflow-wrap:anywhere; }
-    .card .go { position:absolute; top:14px; right:14px; font-size:14px; color:#aab7c8; opacity:0; transition:opacity .15s; }
-    .card.click:hover .go { opacity:1; color:var(--accent); }
+    .goBtn { display:inline-flex; align-items:center; gap:9px; align-self:flex-start; margin-top:auto; padding:6px 14px 6px 7px; border-radius:999px; font-size:13px; font-weight:700; color:#fff; letter-spacing:.01em;
+             background:linear-gradient(135deg,#19a96a,#0a6a3c); box-shadow:inset 0 1px 0 rgba(255,255,255,.3), 0 8px 16px -8px rgba(10,106,60,.8); transition:transform .15s, filter .15s; }
+    .goBtn .gi { width:26px; height:26px; border-radius:8px; background:rgba(255,255,255,.92); display:grid; place-items:center; }
+    .goBtn .gi svg { width:15px; height:15px; fill:none; stroke:#0a6a3c; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+    .goBtn b { font-size:17px; line-height:1; margin-left:1px; font-weight:700; }
+    .card .ft { margin-bottom:14px; }
+    .card.click:hover .goBtn { filter:brightness(1.12); transform:translateX(3px); }
+    .card.hl .goBtn { background:#fff; color:#0f67bd; box-shadow:0 8px 16px -8px rgba(0,0,0,.35); }
+    .card.hl .goBtn .gi { background:#e6f3fc; } .card.hl .goBtn .gi svg { stroke:#0f67bd; }
     .card .mini { height:3px; border-radius:2px; background:#edf2f8; margin:4px 0 12px; overflow:hidden; }
     .card .mini i { display:block; height:100%; border-radius:2px; background:var(--accent); }
     .card .ft { display:flex; align-items:center; gap:10px; margin-top:12px; }
@@ -92,7 +99,7 @@
     .card.y .ic { background:var(--y-bg); } .card.y .ic svg { stroke:var(--amber); } .card.y .mini i { background:var(--amber); }
     .card.r .ic { background:var(--r-bg); } .card.r .ic svg { stroke:var(--red); } .card.r .mini i { background:var(--red); }
     .card.hl { background:linear-gradient(135deg,#2eaae8 0%,#1a7fd0 55%,#0f67bd 100%); box-shadow:0 14px 28px -12px rgba(15,103,189,.6); }
-    .card.hl .lbl, .card.hl .sub { color:rgba(255,255,255,.85); } .card.hl .val { color:#fff; } .card.hl .go { color:#fff; }
+    .card.hl .lbl, .card.hl .sub { color:rgba(255,255,255,.85); } .card.hl .val { color:#fff; }
     .card.hl .ic { background:rgba(255,255,255,.22); } .card.hl .ic svg { stroke:#fff; }
     .card.hl .mini { background:rgba(255,255,255,.28); } .card.hl .mini i { background:#fff; }
     .card.crown { background:#f2f9ff; box-shadow:0 0 0 1.5px #bfe0f6, 0 2px 12px rgba(30,70,130,.07); }
@@ -425,10 +432,11 @@
 
     // ---- Render ----
     const KIC = { g:'<path d="M4 16l6-6 4 4 6-7"/><path d="M15 7h5v5"/>', y:'<path d="M5 12h14"/>', r:'<path d="M4 8l6 6 4-4 6 7"/><path d="M15 17h5v-5"/>', n:'<path d="M5 19v-9M12 19V5M19 19v-6"/>' };
+    const GO = '<span class="goBtn" aria-hidden="true"><i class="gi"><svg viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M9.5 12h5M9.5 15.5h5"/></svg></i>Lihat site<b>&rsaquo;</b></span>';
     function kpiCard(lbl, val, sub, lv, pct, extra = '', key = '') {
       const bar = pct == null ? '' : `<div class="mini"><i style="width:${Math.max(0, Math.min(100, pct * 100)).toFixed(1)}%"></i></div>`;
       const act = key ? ` click" tabindex="0" role="button" data-k="${safe(key)}" aria-label="Lihat daftar site: ${safe(lbl)}` : '';
-      return `<div class="card ${lv} ${extra}${act}"><div class="lbl">${safe(lbl)}</div>${key ? '<span class="go" aria-hidden="true">&#8599;</span>' : ''}<div class="val">${safe(val)}</div>${bar}<div class="ft"><i class="ic"><svg viewBox="0 0 24 24">${KIC[lv]}</svg></i><div class="sub">${safe(sub)}</div></div></div>`;
+      return `<div class="card ${lv} ${extra}${act}"><div class="lbl">${safe(lbl)}</div><div class="val">${safe(val)}</div>${bar}<div class="ft"><i class="ic"><svg viewBox="0 0 24 24">${KIC[lv]}</svg></i><div class="sub">${safe(sub)}</div></div>${key ? GO : ''}</div>`;
     }
     function renderKpi(rows) {
       const n = rows.length, cnt = fn => rows.filter(fn).length, pct = x => n ? x / n : 0;
